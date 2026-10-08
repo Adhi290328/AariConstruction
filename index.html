@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aari Construction - HLD Project & Customization System</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- =========================================================================
+       TOP DEMO & PRESENTATION CONTROL BAR
+       ========================================================================= -->
+  <aside class="demo-banner" aria-label="Demo Presentation Controls">
+    <div class="demo-banner-title">
+      <span class="demo-badge">HLD PROTOTYPE</span>
+      <span>Aari Construction &mdash; Multi-Tier Delivery System</span>
+    </div>
+
+    <div class="demo-actions">
+      <!-- Quick Role Switcher for 30-min Presentation -->
+      <div class="role-switcher">
+        <button id="roleBtnConsultant" class="role-btn active" title="Switch to Aari's Project Management View">
+          🏗️ Consultant View
+        </button>
+        <button id="roleBtnCustomerPriya" class="role-btn" title="Switch to Priya's Portal (Flat 102 Semi-Finished)">
+          👤 Priya (Semi-Finished)
+        </button>
+        <button id="roleBtnCustomerVikram" class="role-btn" title="Switch to Vikram's Portal (Flat 101 Bare-Bones)">
+          👤 Vikram (Bare-Bones)
+        </button>
+      </div>
+
+      <!-- Button to show Architecture & 6-member task division -->
+      <button id="btnOpenHldModal" class="btn-hld-modal" title="View High-Level Design Architecture & Team Roles">
+        📐 HLD Architecture & Team
+      </button>
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       MAIN APP HEADER
+       ========================================================================= -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-logo-icon">AC</div>
+      <div>
+        <h1 class="brand-title">AARI <span>CONSTRUCTION</span></h1>
+        <p class="brand-tagline">Custom Housing Delivery & Real-Time Milestone Engine</p>
+      </div>
+    </div>
+
+    <!-- Navigation Bar (Dynamically changes with role) -->
+    <nav class="header-nav" aria-label="Main Navigation">
+      <ul class="nav-links" id="consultantNav">
+        <li><button class="nav-link-btn active" data-view="consultantDashboard">📊 Dashboard</button></li>
+        <li><button class="nav-link-btn" data-view="consultantProjects">🏢 Projects</button></li>
+        <li><button class="nav-link-btn" data-view="consultantUnits">🧱 Unit Matrix</button></li>
+        <li><button class="nav-link-btn" data-view="consultantCustomizations">✏️ Custom Requests <span id="pendingBadgeCount" class="badge badge-pending">1</span></button></li>
+      </ul>
+
+      <ul class="nav-links" id="customerNav" style="display: none;">
+        <li><button class="nav-link-btn active" data-view="customerHome">🏡 My Home</button></li>
+        <li><button class="nav-link-btn" data-view="customerPhotos">📷 Site Photos</button></li>
+        <li><button class="nav-link-btn" data-view="customerCustomization">✏️ Request Changes</button></li>
+        <li><button class="nav-link-btn" data-view="customerDelivery">🚚 Delivery & Scope</button></li>
+      </ul>
+
+      <div class="user-profile-badge">
+        <div class="avatar consultant" id="userAvatar">A</div>
+        <div class="user-info">
+          <span class="user-name" id="userNameLabel">Aari Management</span>
+          <span class="user-role-label" id="userRoleSubLabel">Lead Consultant</span>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- =========================================================================
+       MAIN CONTENT CONTAINER
+       ========================================================================= -->
+  <main class="main-wrapper">
+
+    <!-- =======================================================================
+         VIEW 1: CONSULTANT EXECUTIVE DASHBOARD
+         ======================================================================= -->
+    <section id="viewConsultantDashboard" class="view-container active">
+      
+      <!-- Key Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card" style="--card-accent: #f59e0b;">
+          <div class="stat-info">
+            <div class="stat-label">Total Projects</div>
+            <div class="stat-value" id="statProjects">12</div>
+            <div class="stat-desc">3 Active Multi-Family & Villas</div>
+          </div>
+          <div class="stat-icon">🏗️</div>
+        </div>
+
+        <div class="stat-card" style="--card-accent: #06b6d4;">
+          <div class="stat-info">
+            <div class="stat-label">Total Units Tracked</div>
+            <div class="stat-value" id="statUnits">148</div>
+            <div class="stat-desc">Customizable Residential Units</div>
+          </div>
+          <div class="stat-icon">🏢</div>
+        </div>
+
+        <div class="stat-card" style="--card-accent: #8b5cf6;">
+          <div class="stat-info">
+            <div class="stat-label">In Active Construction</div>
+            <div class="stat-value" id="statActive">42</div>
+            <div class="stat-desc">Structure, MEP & Finishes</div>
+          </div>
+          <div class="stat-icon">⚡</div>
+        </div>
+
+        <div class="stat-card" style="--card-accent: #10b981;">
+          <div class="stat-info">
+            <div class="stat-label">Ready For Handover</div>
+            <div class="stat-value" id="statReady">36</div>
+            <div class="stat-desc">Bare-Bones & Early Deliveries</div>
+          </div>
+          <div class="stat-icon">🔑</div>
+        </div>
+      </div>
+
+      <!-- Core Differentiator: Multi-Tier Decoupling Architecture -->
+      <div class="tier-explanation-box">
+        <div class="tier-explanation-header">
+          <div class="tier-explanation-title">
+            <span>🛡️</span> Aari's Core Differentiator: Non-Blocking Tiered Handover Architecture
+          </div>
+          <span class="badge badge-ready">Zero Cascading Delays</span>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+          Traditional builders delay whole blocks when one customer requests interior remodeling. Aari Construction tracks each unit independently with modular milestones:
+        </p>
+        <div class="tier-chips">
+          <div class="tier-chip">
+            <div class="tier-chip-header">
+              <span class="tier-chip-name" style="color: #fcd34d;">Tier 1: Bare-Bones</span>
+              <span class="tier-eta-badge">Target: ~3-4 Months</span>
+            </div>
+            <div class="tier-chip-desc">
+              Foundation, RCC framed structure, partition walls, and rough plastering. Customer handles painting, electrical fittings, and interiors.
+            </div>
+            <div class="tier-benefits">✓ Delivered early as soon as plastering cures</div>
+          </div>
+
+          <div class="tier-chip">
+            <div class="tier-chip-header">
+              <span class="tier-chip-name" style="color: #67e8f9;">Tier 2: Semi-Finished</span>
+              <span class="tier-eta-badge">Target: ~6-8 Months</span>
+            </div>
+            <div class="tier-chip-desc">
+              Structure + concealed electrical conduits, sanitary piping, base primer paint, and balcony/bathroom tile cladding. Customer does woodwork & decor.
+            </div>
+            <div class="tier-benefits">✓ Delivered ready for customer interior contractors</div>
+          </div>
+
+          <div class="tier-chip">
+            <div class="tier-chip-header">
+              <span class="tier-chip-name" style="color: #6ee7b7;">Tier 3: Fully Finished & Custom</span>
+              <span class="tier-eta-badge">Target: ~10-12 Months</span>
+            </div>
+            <div class="tier-chip-desc">
+              Turn-key delivery including Italian marble flooring, modular kitchen, acoustic ceiling, and smart automation.
+            </div>
+            <div class="tier-benefits">✓ Isolated schedule that never holds back Tier 1 or Tier 2 neighbors</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects Overview Section -->
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Active Construction Projects</h2>
+          <p class="section-subtitle">Real-time aggregate status across all residential developments</p>
+        </div>
+        <button class="btn-action primary" id="btnQuickSelectGreenValley">
+          Inspect Green Valley (Block A)
+        </button>
+      </div>
+
+      <div class="projects-grid" id="dashboardProjectsList">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+
+    <!-- =======================================================================
+         VIEW 2: CONSULTANT PROJECTS LIST
+         ======================================================================= -->
+    <section id="viewConsultantProjects" class="view-container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Project Portfolio</h2>
+          <p class="section-subtitle">Select any project to inspect unit-level construction stages</p>
+        </div>
+      </div>
+
+      <div class="projects-grid" id="fullProjectsList">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+
+    <!-- =======================================================================
+         VIEW 3: APARTMENT / UNIT MATRIX (THE HEART OF THE PROBLEM)
+         ======================================================================= -->
+    <section id="viewConsultantUnits" class="view-container">
+      <div class="matrix-container">
+        
+        <div class="section-header" style="margin-bottom: 12px;">
+          <div>
+            <h2 class="section-title" id="matrixProjectTitle">Green Valley Apartments &mdash; Block A</h2>
+            <p class="section-subtitle">Unit-by-unit package completion tracking showing zero cross-unit delay</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-action" id="btnUploadNewPhotoPrompt">
+              📷 Upload Site Photo
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Pills -->
+        <div class="matrix-controls-bar">
+          <div class="filter-pills" id="tierFilterPills">
+            <button class="filter-pill active" data-filter="all">All Units (6)</button>
+            <button class="filter-pill" data-filter="Bare-Bones">Bare-Bones (3)</button>
+            <button class="filter-pill" data-filter="Semi-Finished">Semi-Finished (2)</button>
+            <button class="filter-pill" data-filter="Fully Finished + Custom">Fully Finished / Custom (1)</button>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">
+            Tip: Click on <strong>Flat 101</strong> (Ready) or <strong>Flat 102</strong> (Semi) to inspect details below.
+          </div>
+        </div>
+
+        <!-- Interactive Unit Matrix Cards -->
+        <div class="unit-cards-grid" id="unitsGridContainer">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Selected Unit Detail Drawer / Inspector Panel -->
+        <div class="unit-detail-panel" id="unitDetailPanel" style="display: none;">
+          <!-- Populated dynamically when a unit is clicked -->
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- =======================================================================
+         VIEW 4: CONSULTANT CUSTOMIZATION QUEUE
+         ======================================================================= -->
+    <section id="viewConsultantCustomizations" class="view-container">
+      <div class="matrix-container">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Client Customization Requests Queue</h2>
+            <p class="section-subtitle">Review, approve, or reject on-demand requests without affecting structural milestones</p>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="customization-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Unit / Customer</th>
+                <th>Category</th>
+                <th>Customization Details</th>
+                <th>Cost Impact</th>
+                <th>Time Impact</th>
+                <th>Current Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="customizationsTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- =======================================================================
+         VIEW 5: CUSTOMER PORTAL (HOME / PRIYA / VIKRAM)
+         ======================================================================= -->
+    <section id="viewCustomerHome" class="view-container">
+      
+      <!-- Customer Hero Card -->
+      <div class="customer-hero-card" id="customerHeroBanner">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Customer Dual Column View -->
+      <div class="customer-grid-2col">
+        
+        <!-- Left: Milestone Tracker -->
+        <div class="matrix-container" style="margin-bottom: 0;">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">Your Construction Progress</h2>
+              <p class="section-subtitle">Real-time status certified by on-site structural engineers</p>
+            </div>
+            <span class="badge badge-semifinished" id="customerPackageBadge">Semi-Finished</span>
+          </div>
+
+          <div class="timeline-list" id="customerTimelineList">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Right: Recent Photos & Quick Actions -->
+        <div>
+          <div class="matrix-container" style="margin-bottom: 20px;">
+            <div class="section-header">
+              <div>
+                <h3 class="section-title" style="font-size: 1.05rem;">Latest On-Site Proof</h3>
+                <p class="section-subtitle">Photos uploaded directly from site floor</p>
+              </div>
+            </div>
+            <div id="customerLatestPhotoPreview">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+          <!-- Scope of Work Summary Box -->
+          <div class="matrix-container" style="margin-bottom: 0;">
+            <h3 class="section-title" style="font-size: 1.05rem; margin-bottom: 8px;">Scope Breakdown</h3>
+            <div class="customer-info-box" id="customerScopeBox">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- =======================================================================
+         VIEW 6: CUSTOMER PHOTOS GALLERY
+         ======================================================================= -->
+    <section id="viewCustomerPhotos" class="view-container">
+      <div class="matrix-container">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Site Verification Photo Feed</h2>
+            <p class="section-subtitle">Geo-tagged and milestone-stamped site photography for your unit</p>
+          </div>
+        </div>
+
+        <div class="photo-gallery-grid" id="customerFullPhotoGrid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </section>
+
+
+    <!-- =======================================================================
+         VIEW 7: CUSTOMER REQUEST CUSTOMIZATION
+         ======================================================================= -->
+    <section id="viewCustomerCustomization" class="view-container">
+      <div class="matrix-container" style="max-width: 760px; margin: 0 auto;">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Submit Customization Request</h2>
+            <p class="section-subtitle">Request design modifications without delaying the core building structure</p>
+          </div>
+        </div>
+
+        <form id="customizationRequestForm">
+          <div class="form-group">
+            <label class="form-label" for="reqCategory">Customization Category</label>
+            <select class="form-select" id="reqCategory" required>
+              <option value="Electrical & Lighting">Electrical & Power Sockets</option>
+              <option value="Wall Finish & Paint Swatch">Wall Finish & Paint Swatch</option>
+              <option value="Cladding / Tiles">Tile Cladding & Balcony Granite</option>
+              <option value="Plumbing & Sanity">Plumbing Fixtures & Sanitary</option>
+              <option value="Smart Automation">Smart Automation & Low Voltage</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reqTitle">Request Title</label>
+            <input type="text" class="form-input" id="reqTitle" placeholder="e.g. Add 2 extra 16A points on bedroom west wall" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reqDescription">Detailed Description / Instructions for Aari's Site Engineers</label>
+            <textarea class="form-textarea" id="reqDescription" rows="4" placeholder="Specify wall location, measurements, preferred finish or attachment references..." required></textarea>
+          </div>
+
+          <button type="submit" class="btn-action primary" style="width: 100%; padding: 12px;">
+            🚀 Submit Request for Engineering Review
+          </button>
+        </form>
+
+        <!-- Current Requests History -->
+        <div style="margin-top: 32px;">
+          <h3 class="section-title" style="font-size: 1rem; margin-bottom: 12px;">Your Pending & Approved Requests</h3>
+          <div id="customerExistingRequestsList">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- =======================================================================
+         VIEW 8: CUSTOMER DELIVERY & ETA BREAKDOWN
+         ======================================================================= -->
+    <section id="viewCustomerDelivery" class="view-container">
+      <div class="matrix-container" style="max-width: 800px; margin: 0 auto;">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Delivery Schedule & Non-Interference Guarantee</h2>
+            <p class="section-subtitle">Transparent milestone tracking and handover assurance</p>
+          </div>
+        </div>
+
+        <div id="customerDeliveryDetailsCard">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- =========================================================================
+       MODAL 1: HLD ARCHITECTURE & TEAM ALLOCATION (FOR 30-MIN PRESENTATION!)
+       ========================================================================= -->
+  <div class="modal-overlay" id="hldModal" role="dialog" aria-modal="true" aria-labelledby="hldModalTitle">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" id="btnCloseHldModal" aria-label="Close modal">&times;</button>
+      
+      <div style="margin-bottom: 20px;">
+        <span class="badge badge-custom">ACADEMIC & CONSULTING BLUEPRINT</span>
+        <h2 id="hldModalTitle" style="font-size: 1.5rem; font-weight: 800; margin-top: 6px;">
+          Aari Construction &mdash; High-Level Design (HLD) Architecture
+        </h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          Proposed solution design addressing multi-tier housing customization without cascading schedule delays.
+        </p>
+      </div>
+
+      <!-- Layer 1: Presentation Layer -->
+      <div class="arch-layer">
+        <div class="arch-layer-title">
+          <span>🖥️</span> LAYER 1: PRESENTATION & CLIENT INTERFACES
+        </div>
+        <div class="arch-components">
+          <div class="arch-card">
+            <strong>Consultant Web Portal</strong>
+            <span>Executive metrics, unit matrix, photo uploads & approvals</span>
+          </div>
+          <div class="arch-card">
+            <strong>Customer Web App</strong>
+            <span>Real-time milestone tracker, photo feed & change requests</span>
+          </div>
+          <div class="arch-card">
+            <strong>Site Worker Floor App</strong>
+            <span>Geo-tagged progress verification and direct photo uploads</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer 2: Core Domain Logic & Modules -->
+      <div class="arch-layer">
+        <div class="arch-layer-title">
+          <span>⚙️</span> LAYER 2: BUSINESS LOGIC & DOMAIN MODULES
+        </div>
+        <div class="arch-components">
+          <div class="arch-card">
+            <strong>Tier Segregation Engine</strong>
+            <span>Decouples Bare-Bones, Semi, and Full finishes</span>
+          </div>
+          <div class="arch-card">
+            <strong>Dynamic ETA Calculator</strong>
+            <span>Calculates handover dates per unit package scope</span>
+          </div>
+          <div class="arch-card">
+            <strong>Customization Manager</strong>
+            <span>Asynchronous change request lifecycle (Submit → Review → Approved)</span>
+          </div>
+          <div class="arch-card">
+            <strong>Photo Verification System</strong>
+            <span>Attaches visual proof to individual construction milestones</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer 3: Persistence & Cloud Services (Simulated for Demo) -->
+      <div class="arch-layer">
+        <div class="arch-layer-title">
+          <span>💾</span> LAYER 3: DATA & INFRASTRUCTURE (CONCEPTUAL BACKEND)
+        </div>
+        <div class="arch-components">
+          <div class="arch-card">
+            <strong>Project & Unit Store</strong>
+            <span>Relational schema for Apartment -> Block -> Unit</span>
+          </div>
+          <div class="arch-card">
+            <strong>Media Object Storage</strong>
+            <span>Cloud storage for high-res on-site construction photos</span>
+          </div>
+          <div class="arch-card">
+            <strong>Audit & Notification Engine</strong>
+            <span>Automated alerts on stage completion & approval status</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6-Member Team Delegation Grid (Exactly matching the team breakdown) -->
+      <div style="margin-top: 24px;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; color: var(--accent-amber-light);">
+          👥 6-Member Presentation Task Division
+        </h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          How our 6 team members will divide and present the solution during the 30-minute review:
+        </p>
+
+        <div class="team-grid" id="hldTeamGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Presentation Guide / 30-min Script -->
+      <div style="margin-top: 24px; padding: 16px; background: rgba(0,0,0,0.4); border-radius: var(--radius-md); border-left: 3px solid var(--accent-amber);">
+        <h4 style="font-size: 0.88rem; font-weight: 700; color: #fff; margin-bottom: 4px;">
+          ⏱️ 30-Minute Presentation Script & Flow:
+        </h4>
+        <ol style="font-size: 0.8rem; color: var(--text-muted); padding-left: 20px; line-height: 1.6;">
+          <li><strong>00:00 - 05:00:</strong> Problem Statement (Aari's dilemma: custom requests blocking standard delivery).</li>
+          <li><strong>05:00 - 10:00:</strong> Solution Architecture & HLD Blueprint (Show Layer 1 to Layer 3).</li>
+          <li><strong>10:00 - 18:00:</strong> Live Demo - Consultant Portal (Demonstrate Unit Matrix: Flat 101 vs Flat 102 vs Flat 104).</li>
+          <li><strong>18:00 - 24:00:</strong> Live Demo - Customer Portal (Show Priya's view, photo updates, submit customization).</li>
+          <li><strong>24:00 - 30:00:</strong> Conclusion, delivery guarantees, and Q&A.</li>
+        </ol>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- =========================================================================
+       MODAL 2: SIMULATE SITE PHOTO UPLOAD
+       ========================================================================= -->
+  <div class="modal-overlay" id="uploadModal" role="dialog" aria-modal="true" aria-labelledby="uploadModalTitle">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <button class="modal-close-btn" id="btnCloseUploadModal" aria-label="Close modal">&times;</button>
+      
+      <h3 id="uploadModalTitle" style="font-size: 1.25rem; font-weight: 700; margin-bottom: 6px;">
+        📷 Site Progress Photo Upload
+      </h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px;">
+        Simulate an on-site supervisor capturing field verification for Flat 102.
+      </p>
+
+      <form id="sitePhotoUploadForm">
+        <div class="form-group">
+          <label class="form-label" for="photoSelectPreset">Select Field Image</label>
+          <select class="form-select" id="photoSelectPreset">
+            <option value="https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?auto=format&fit=crop&w=800&q=80">Balcony Exterior Cladding (Granite Mounted)</option>
+            <option value="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80">Interior Living Room Wall Second Primer Coat</option>
+            <option value="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80">Conduit Wiring & Safety MCB Box Passed</option>
+            <option value="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80">Structural Plastering Curing Verification</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="photoStage">Associated Milestone</label>
+          <select class="form-select" id="photoStage">
+            <option value="Painting">Painting (Base & Primer)</option>
+            <option value="Cladding">Balcony & Bathroom Cladding</option>
+            <option value="Electrical">Electrical Conduits</option>
+            <option value="Plastering">Plastering</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="photoTitle">Photo Caption</label>
+          <input type="text" class="form-input" id="photoTitle" value="Granite border tiling completed on East Balcony" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="photoNotes">Field Engineer's Notes</label>
+          <textarea class="form-textarea" id="photoNotes" rows="2">Joint inspection verified 0 mm tilt. Curing completed.</textarea>
+        </div>
+
+        <button type="submit" class="btn-action primary" style="width: 100%; padding: 10px;">
+          ✓ Post Verified Site Photo to Customer Portal
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Main JavaScript App -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

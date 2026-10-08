@@ -1,0 +1,17 @@
+{
+  "name": "aari-construction-hld",
+  "version": "1.0.0",
+  "description": "High-Level Design (HLD) Frontend Prototype for Aari Construction System",
+  "type": "module",
+  "scripts": {
+    "start": "node serve.js",
+    "dev": "node serve.js"
+  },
+  "keywords": [
+    "construction-management",
+    "hld",
+    "architecture-prototype"
+  ],
+  "author": "Team 6",
+  "license": "ISC"
+}
