@@ -378,6 +378,25 @@
         </div>
       </div>
 
+      <!-- On-Page Responsive Client Tab Switcher (Touch-friendly & laptop accessible) -->
+      <div class="client-tab-bar-container">
+        <div class="client-tab-bar-scroll" id="clientPageTabBar">
+          <button class="stage-tab-pill active" data-client-pill="categoriesTab">
+            <span>🏠</span>
+            <span class="tab-label">Explore Categories</span>
+          </button>
+          <button class="stage-tab-pill" data-client-pill="myRequestsTab">
+            <span>📋</span>
+            <span class="tab-label">My Requests</span>
+            <span class="tab-count-badge" id="clientPillRequestCount">0</span>
+          </button>
+          <button class="stage-tab-pill" data-client-pill="portfolioTab">
+            <span>🏛️</span>
+            <span class="tab-label">Completed Landmarks</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Tab Content 1: Categories to Choose From -->
       <div class="client-tab-panel active" id="tabCategoriesContent">
         
@@ -442,49 +461,88 @@
         </div>
       </div>
 
-      <!-- Admin KPI Counters (All 6 Stages) -->
+      <!-- Admin KPI Counters (Clickable to switch tabs directly) -->
       <div class="admin-metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-        <div class="metric-card">
+        <div class="metric-card" data-kpi-target="allTab" title="Click to view all requests">
           <div class="metric-icon">📥</div>
           <div class="metric-data">
             <span class="metric-val" id="metricTotal">0</span>
             <span class="metric-name">Total Inquiries</span>
           </div>
         </div>
-        <div class="metric-card warning">
+        <div class="metric-card warning" data-kpi-target="pendingTab" title="Click to view pending inquiries">
           <div class="metric-icon">⏳</div>
           <div class="metric-data">
             <span class="metric-val" id="metricPending">0</span>
             <span class="metric-name">Pending Call</span>
           </div>
         </div>
-        <div class="metric-card" style="border-left: 4px solid #3b82f6;">
+        <div class="metric-card" data-kpi-target="needsStartTab" title="Click to view buildings needing start" style="border-left: 4px solid #3b82f6;">
           <div class="metric-icon">🏗️</div>
           <div class="metric-data">
             <span class="metric-val" id="metricNeedsStart" style="color:#60a5fa;">0</span>
             <span class="metric-name">Needs to Start</span>
           </div>
         </div>
-        <div class="metric-card" style="border-left: 4px solid #8b5cf6;">
+        <div class="metric-card" data-kpi-target="processingTab" title="Click to view processing buildings" style="border-left: 4px solid #8b5cf6;">
           <div class="metric-icon">⚙️</div>
           <div class="metric-data">
             <span class="metric-val" id="metricProcessing" style="color:#c084fc;">0</span>
             <span class="metric-name">Processing</span>
           </div>
         </div>
-        <div class="metric-card success">
+        <div class="metric-card success" data-kpi-target="finishedTab" title="Click to view finished buildings">
           <div class="metric-icon">🏆</div>
           <div class="metric-data">
             <span class="metric-val" id="metricFinished">0</span>
             <span class="metric-name">Finished Units</span>
           </div>
         </div>
-        <div class="metric-card danger">
+        <div class="metric-card danger" data-kpi-target="rejectedTab" title="Click to view rejected inquiries">
           <div class="metric-icon">❌</div>
           <div class="metric-data">
             <span class="metric-val" id="metricRejected">0</span>
             <span class="metric-name">Rejected</span>
           </div>
+        </div>
+      </div>
+
+      <!-- On-Page Responsive Stage Tab Switchers (Swipeable on mobile, clear on laptop) -->
+      <div class="admin-tab-bar-container">
+        <div class="admin-tab-bar-scroll" id="adminPageTabBar">
+          <button class="stage-tab-pill active" data-stage-tab="allTab">
+            <span class="tab-label">All Inquiries</span>
+            <span class="tab-count-badge" id="pillCountAll">0</span>
+          </button>
+          <button class="stage-tab-pill" data-stage-tab="pendingTab">
+            <span>⏳</span>
+            <span class="tab-label">Pending Call</span>
+            <span class="tab-count-badge" id="pillCountPending">0</span>
+          </button>
+          <button class="stage-tab-pill" data-stage-tab="needsStartTab">
+            <span>🏗️</span>
+            <span class="tab-label">Needs to Start</span>
+            <span class="tab-count-badge" id="pillCountNeedsStart">0</span>
+          </button>
+          <button class="stage-tab-pill" data-stage-tab="processingTab">
+            <span>⚙️</span>
+            <span class="tab-label">Processing</span>
+            <span class="tab-count-badge" id="pillCountProcessing">0</span>
+          </button>
+          <button class="stage-tab-pill" data-stage-tab="finishedTab">
+            <span>🏆</span>
+            <span class="tab-label">Finished</span>
+            <span class="tab-count-badge" id="pillCountFinished">0</span>
+          </button>
+          <button class="stage-tab-pill" data-stage-tab="rejectedTab">
+            <span>❌</span>
+            <span class="tab-label">Rejected</span>
+            <span class="tab-count-badge" id="pillCountRejected">0</span>
+          </button>
+          <button class="stage-tab-pill" data-stage-tab="addCustomerTab">
+            <span>➕</span>
+            <span class="tab-label">Add Customer (Flat No)</span>
+          </button>
         </div>
       </div>
 

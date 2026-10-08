@@ -104,6 +104,15 @@ class AariApp {
     this.adminFinishedNavCount = document.getElementById('adminFinishedNavCount');
     this.adminRejectedNavCount = document.getElementById('adminRejectedNavCount');
 
+    // On-Page Stage & Client Tab Badges
+    this.clientPillRequestCount = document.getElementById('clientPillRequestCount');
+    this.pillCountAll = document.getElementById('pillCountAll');
+    this.pillCountPending = document.getElementById('pillCountPending');
+    this.pillCountNeedsStart = document.getElementById('pillCountNeedsStart');
+    this.pillCountProcessing = document.getElementById('pillCountProcessing');
+    this.pillCountFinished = document.getElementById('pillCountFinished');
+    this.pillCountRejected = document.getElementById('pillCountRejected');
+
     // Buttons
     this.btnOpenLoginModal = document.getElementById('btnOpenLoginModal');
     this.btnLogout = document.getElementById('btnLogout');
@@ -355,6 +364,30 @@ class AariApp {
       });
     });
 
+    // On-Page Stage Tab Switcher Pills (Admin)
+    document.querySelectorAll('.stage-tab-pill[data-stage-tab]').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const target = pill.getAttribute('data-stage-tab');
+        this.switchAdminTab(target);
+      });
+    });
+
+    // On-Page Client Tab Switcher Pills
+    document.querySelectorAll('.stage-tab-pill[data-client-pill]').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const target = pill.getAttribute('data-client-pill');
+        this.switchClientTab(target);
+      });
+    });
+
+    // Interactive Admin Metric KPI Cards (Click to switch to relevant stage tab)
+    document.querySelectorAll('.metric-card[data-kpi-target]').forEach(card => {
+      card.addEventListener('click', () => {
+        const target = card.getAttribute('data-kpi-target');
+        this.switchAdminTab(target);
+      });
+    });
+
     // Inquire Direct buttons on Landing page
     document.querySelectorAll('.btn-inquire-direct').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -593,6 +626,9 @@ class AariApp {
       ).length;
       if (this.userRequestCount) {
         this.userRequestCount.textContent = myCount;
+      }
+      if (this.clientPillRequestCount) {
+        this.clientPillRequestCount.textContent = myCount;
       }
     }
     this.updateAdminKPIs();
@@ -1017,9 +1053,18 @@ class AariApp {
     this.tabMyRequestsContent.classList.remove('active');
     this.tabPortfolioContent.classList.remove('active');
 
+    // Sync Header Nav Tabs
     document.querySelectorAll('#clientNav .nav-tab').forEach(t => t.classList.remove('active'));
     const tabBtn = document.querySelector(`#clientNav [data-target-tab="${tabName}"]`);
     if (tabBtn) tabBtn.classList.add('active');
+
+    // Sync On-Page Tab Pills
+    document.querySelectorAll('#clientPageTabBar .stage-tab-pill').forEach(p => p.classList.remove('active'));
+    const pillBtn = document.querySelector(`#clientPageTabBar [data-client-pill="${tabName}"]`);
+    if (pillBtn) {
+      pillBtn.classList.add('active');
+      pillBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
 
     if (tabName === 'myRequestsTab') {
       this.tabMyRequestsContent.classList.add('active');
@@ -1141,15 +1186,47 @@ class AariApp {
     if (this.adminProcessingNavCount) this.adminProcessingNavCount.textContent = processing;
     if (this.adminFinishedNavCount) this.adminFinishedNavCount.textContent = finished;
     if (this.adminRejectedNavCount) this.adminRejectedNavCount.textContent = rejected;
+
+    // On-Page Stage Tab Badges
+    if (this.pillCountAll) this.pillCountAll.textContent = total;
+    if (this.pillCountPending) this.pillCountPending.textContent = pending;
+    if (this.pillCountNeedsStart) this.pillCountNeedsStart.textContent = needsStart;
+    if (this.pillCountProcessing) this.pillCountProcessing.textContent = processing;
+    if (this.pillCountFinished) this.pillCountFinished.textContent = finished;
+    if (this.pillCountRejected) this.pillCountRejected.textContent = rejected;
+
+    // Synchronize active indicator on KPI cards
+    document.querySelectorAll('.metric-card[data-kpi-target]').forEach(card => {
+      const target = card.getAttribute('data-kpi-target');
+      if (target === this.currentAdminTab) {
+        card.classList.add('active-kpi');
+      } else {
+        card.classList.remove('active-kpi');
+      }
+    });
   }
 
   switchAdminTab(tabName, pushHistory = true) {
     this.currentAdminTab = tabName;
     document.querySelectorAll('.admin-tab-pane').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('#adminNav .nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#adminPageTabBar .stage-tab-pill').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.metric-card[data-kpi-target]').forEach(c => c.classList.remove('active-kpi'));
 
+    // Sync Header Tab
     const tabBtn = document.querySelector(`#adminNav [data-admin-tab="${tabName}"]`);
     if (tabBtn) tabBtn.classList.add('active');
+
+    // Sync On-Page Pill & Auto-Scroll
+    const pillBtn = document.querySelector(`#adminPageTabBar [data-stage-tab="${tabName}"]`);
+    if (pillBtn) {
+      pillBtn.classList.add('active');
+      pillBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+
+    // Sync KPI Card
+    const activeKpi = document.querySelector(`.metric-card[data-kpi-target="${tabName}"]`);
+    if (activeKpi) activeKpi.classList.add('active-kpi');
 
     if (tabName === 'addCustomerTab') {
       document.getElementById('paneAddCustomer').classList.add('active');
@@ -1471,20 +1548,26 @@ class AariApp {
   renderMobileDrawer() {
     let linksHtml = '';
     if (this.currentUser && this.currentUser.role === 'admin') {
+      const curTab = this.currentAdminTab || 'allTab';
       linksHtml = `
-        <button class="nav-tab active" data-admin-tab="allTab">All Inquiries (${this.requests.length})</button>
-        <button class="nav-tab" data-admin-tab="pendingTab">⏳ Pending (${this.requests.filter(r=>r.status==='Pending').length})</button>
-        <button class="nav-tab" data-admin-tab="needsStartTab">🏗️ Needs to Start (${this.requests.filter(r=>r.constructionStage==='Needs to Start').length})</button>
-        <button class="nav-tab" data-admin-tab="processingTab">⚙️ Processing (${this.requests.filter(r=>r.constructionStage==='Processing').length})</button>
-        <button class="nav-tab" data-admin-tab="finishedTab">🏆 Finished (${this.requests.filter(r=>r.constructionStage==='Finished').length})</button>
-        <button class="nav-tab" data-admin-tab="rejectedTab">❌ Rejected (${this.requests.filter(r=>r.status==='Rejected').length})</button>
-        <button class="nav-tab" data-admin-tab="addCustomerTab">+ Add Customer</button>
+        <button class="nav-tab ${curTab==='allTab'?'active':''}" data-admin-tab="allTab">All Inquiries (${this.requests.length})</button>
+        <button class="nav-tab ${curTab==='pendingTab'?'active':''}" data-admin-tab="pendingTab">⏳ Pending (${this.requests.filter(r=>r.status==='Pending').length})</button>
+        <button class="nav-tab ${curTab==='needsStartTab'?'active':''}" data-admin-tab="needsStartTab">🏗️ Needs to Start (${this.requests.filter(r=>r.constructionStage==='Needs to Start').length})</button>
+        <button class="nav-tab ${curTab==='processingTab'?'active':''}" data-admin-tab="processingTab">⚙️ Processing (${this.requests.filter(r=>r.constructionStage==='Processing').length})</button>
+        <button class="nav-tab ${curTab==='finishedTab'?'active':''}" data-admin-tab="finishedTab">🏆 Finished (${this.requests.filter(r=>r.constructionStage==='Finished').length})</button>
+        <button class="nav-tab ${curTab==='rejectedTab'?'active':''}" data-admin-tab="rejectedTab">❌ Rejected (${this.requests.filter(r=>r.status==='Rejected').length})</button>
+        <button class="nav-tab ${curTab==='addCustomerTab'?'active':''}" data-admin-tab="addCustomerTab">+ Add Customer (Flat No)</button>
       `;
     } else if (this.currentUser) {
+      const curTab = this.currentClientTab || 'categoriesTab';
+      const myCount = this.requests.filter(r => 
+        (r.clientEmail && r.clientEmail.toLowerCase() === (this.currentUser.email || '').toLowerCase()) ||
+        (r.clientName && r.clientName.toLowerCase() === (this.currentUser.name || '').toLowerCase())
+      ).length;
       linksHtml = `
-        <button class="nav-tab active" data-target-tab="categoriesTab">Explore Categories</button>
-        <button class="nav-tab" data-target-tab="myRequestsTab">My Requests</button>
-        <button class="nav-tab" data-target-tab="portfolioTab">Completed Landmarks</button>
+        <button class="nav-tab ${curTab==='categoriesTab'?'active':''}" data-target-tab="categoriesTab">Explore Categories</button>
+        <button class="nav-tab ${curTab==='myRequestsTab'?'active':''}" data-target-tab="myRequestsTab">My Requests (${myCount})</button>
+        <button class="nav-tab ${curTab==='portfolioTab'?'active':''}" data-target-tab="portfolioTab">Completed Landmarks</button>
         <button class="btn btn-outline w-full mt-sm btn-drawer-back-showcase">← Back to Showcase</button>
       `;
     } else {
