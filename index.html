@@ -357,7 +357,13 @@
       <!-- Client Welcome Banner -->
       <div class="client-banner">
         <div class="client-banner-content">
-          <div class="client-pill">Client Portal Active</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem; flex-wrap:wrap; gap:0.5rem;">
+            <button class="btn-step-back" id="btnBackFromClient" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Back to Showcase</span>
+            </button>
+            <div class="client-pill">Client Portal Active</div>
+          </div>
           <h1 class="client-greeting">Welcome, <span id="clientWelcomeName">Customer</span>!</h1>
           <p class="client-subtitle">
             Configure your personalized construction estimate below. Choose a category, set your budget range, and our Managing Director Mr. Aarikrishnan will personally review and verify your request.
@@ -421,7 +427,13 @@
       <!-- Admin Top Stats Ribbon -->
       <div class="admin-header-strip">
         <div>
-          <div class="admin-badge">Admin Operations Console</div>
+          <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.6rem; flex-wrap:wrap;">
+            <button class="btn-step-back" id="btnBackFromAdmin" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Back to Showcase</span>
+            </button>
+            <div class="admin-badge" style="margin-bottom:0;">Admin Operations Console</div>
+          </div>
           <h1 class="admin-title">Client Inquiries & Verification Pipeline</h1>
           <p class="admin-desc">
             Review incoming quotations from prospective clients. <strong>Call and verify payment manually</strong> before granting approval or assigning flat/unit numbers.
@@ -774,8 +786,9 @@
           <textarea id="inqNotes" class="form-textarea" rows="2" placeholder="e.g. Own plot available, double height ceiling in living room, wooden deck needed, solar inverter setup..."></textarea>
         </div>
 
-        <div class="form-actions mt-lg">
-          <button type="submit" class="btn btn-primary btn-lg w-full">
+        <div class="form-actions mt-lg" style="display:flex; gap:0.75rem;">
+          <button type="button" class="btn btn-outline" id="btnCancelInquiryModal" style="min-width:110px;">← Back</button>
+          <button type="submit" class="btn btn-primary btn-lg" style="flex:1;">
             Submit Registration & Quotation Request
           </button>
         </div>

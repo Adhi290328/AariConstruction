@@ -2,6 +2,7 @@
  * AARI CONSTRUCTION — Application Controller
  * Handles view switching, authentication, interactive quotation estimator,
  * request lifecycle, site owner contact flow, and admin verification pipeline.
+ * Includes complete Mobile Back-Button navigation support (popstate/history stack).
  */
 
 import {
@@ -22,20 +23,30 @@ class AariApp {
     this.activeAdminStatusFilter = 'Pending';
     this.adminSearchQuery = '';
 
+    // History & Navigation State Tracking
+    this.currentView = 'landing';
+    this.currentClientTab = 'categoriesTab';
+    this.currentAdminTab = 'requestsTab';
+
     this.initElements();
     this.bindEvents();
     this.renderPortfolio();
     this.renderCategories();
     
+    // Set initial baseline history state
+    if (!history.state) {
+      history.replaceState({ view: 'landing' }, '', window.location.hash || '#home');
+    }
+
     // Resume session or show landing page
     if (this.currentUser) {
       if (this.currentUser.role === 'admin') {
-        this.switchView('admin');
+        this.switchView('admin', false);
       } else {
-        this.switchView('client');
+        this.switchView('client', false);
       }
     } else {
-      this.switchView('landing');
+      this.switchView('landing', false);
     }
   }
 
@@ -91,6 +102,11 @@ class AariApp {
     this.mobileDrawer = document.getElementById('mobileDrawer');
     this.mobileDrawerContent = document.getElementById('mobileDrawerContent');
     this.brandLogoBtn = document.getElementById('brandLogoBtn');
+
+    // Step-back Buttons
+    this.btnBackFromClient = document.getElementById('btnBackFromClient');
+    this.btnBackFromAdmin = document.getElementById('btnBackFromAdmin');
+    this.btnCancelInquiryModal = document.getElementById('btnCancelInquiryModal');
 
     // Modals
     this.loginModal = document.getElementById('loginModal');
@@ -177,6 +193,9 @@ class AariApp {
      EVENT BINDINGS
      --------------------------------------------------------------------- */
   bindEvents() {
+    // Intercept Browser & Mobile Hardware Back Button (Popstate)
+    window.addEventListener('popstate', (e) => this.handlePopState(e));
+
     // Brand Logo Click -> Go to Landing or Client Portal
     this.brandLogoBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -188,6 +207,17 @@ class AariApp {
         this.switchView('landing');
       }
     });
+
+    // Step-Back Buttons
+    if (this.btnBackFromClient) {
+      this.btnBackFromClient.addEventListener('click', () => this.switchView('landing'));
+    }
+    if (this.btnBackFromAdmin) {
+      this.btnBackFromAdmin.addEventListener('click', () => this.switchView('landing'));
+    }
+    if (this.btnCancelInquiryModal) {
+      this.btnCancelInquiryModal.addEventListener('click', () => this.closeInquiryModal());
+    }
 
     // Login Modal Open
     this.btnOpenLoginModal.addEventListener('click', () => this.openLoginModal('client'));
@@ -259,8 +289,12 @@ class AariApp {
 
     // Mobile Hamburger Menu
     this.btnMobileToggle.addEventListener('click', () => {
+      const willOpen = !this.mobileDrawer.classList.contains('open');
       this.mobileDrawer.classList.toggle('open');
       this.renderMobileDrawer();
+      if (willOpen) {
+        history.pushState({ drawer: true }, '', '#menu');
+      }
     });
 
     // Portfolio Filter Pills
@@ -277,8 +311,6 @@ class AariApp {
     // Client Nav Tabs
     document.querySelectorAll('#clientNav .nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        document.querySelectorAll('#clientNav .nav-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
         const target = tab.getAttribute('data-target-tab');
         this.switchClientTab(target);
       });
@@ -287,8 +319,6 @@ class AariApp {
     // Admin Nav Tabs
     document.querySelectorAll('#adminNav .nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        document.querySelectorAll('#adminNav .nav-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
         const target = tab.getAttribute('data-admin-tab');
         this.switchAdminTab(target);
       });
@@ -300,7 +330,6 @@ class AariApp {
         const catId = btn.getAttribute('data-cat');
         const cat = CATEGORIES.find(c => c.id === catId) || CATEGORIES[0];
         if (!this.currentUser) {
-          // Open login modal with helpful context
           this.openLoginModal('client');
         } else {
           this.openInquiryModal(cat);
@@ -371,9 +400,73 @@ class AariApp {
   }
 
   /* ---------------------------------------------------------------------
+     MOBILE POPSTATE / BACK BUTTON HANDLER (1-Step Back Control)
+     --------------------------------------------------------------------- */
+  handlePopState(e) {
+    // 1. If any modal is currently open, close it first and prevent page exit!
+    const openModal = document.querySelector('.modal-backdrop.open');
+    if (openModal) {
+      openModal.classList.remove('open');
+      return;
+    }
+
+    // 2. If mobile drawer menu is open, close it!
+    if (this.mobileDrawer && this.mobileDrawer.classList.contains('open')) {
+      this.mobileDrawer.classList.remove('open');
+      return;
+    }
+
+    // 3. If there is a recorded view state in history, restore it
+    if (e.state && e.state.view) {
+      this.switchView(e.state.view, false);
+      if (e.state.view === 'client' && e.state.tab) {
+        this.switchClientTab(e.state.tab, false);
+      } else if (e.state.view === 'admin' && e.state.tab) {
+        this.switchAdminTab(e.state.tab, false);
+      }
+      return;
+    }
+
+    // 4. Fallback navigation step-back:
+    if (this.currentView === 'client') {
+      if (this.currentClientTab && this.currentClientTab !== 'categoriesTab') {
+        this.switchClientTab('categoriesTab', false);
+      } else {
+        this.switchView('landing', false);
+      }
+    } else if (this.currentView === 'admin') {
+      if (this.currentAdminTab && this.currentAdminTab !== 'requestsTab') {
+        this.switchAdminTab('requestsTab', false);
+      } else {
+        this.switchView('landing', false);
+      }
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     GENERIC MODAL CONTROLLER WITH HISTORY STACK
+     --------------------------------------------------------------------- */
+  openModal(modalEl, hashId) {
+    if (!modalEl) return;
+    modalEl.classList.add('open');
+    history.pushState({ modal: modalEl.id }, '', '#' + hashId);
+  }
+
+  closeModal(modalEl) {
+    if (!modalEl) return;
+    if (modalEl.classList.contains('open')) {
+      modalEl.classList.remove('open');
+      if (history.state && history.state.modal === modalEl.id) {
+        history.back();
+      }
+    }
+  }
+
+  /* ---------------------------------------------------------------------
      VIEW ROUTING & AUTH HEADER STATE
      --------------------------------------------------------------------- */
-  switchView(viewName) {
+  switchView(viewName, pushHistory = true) {
+    this.currentView = viewName;
     this.viewLanding.classList.remove('active');
     this.viewClientPortal.classList.remove('active');
     this.viewAdminDashboard.classList.remove('active');
@@ -386,13 +479,22 @@ class AariApp {
       this.viewAdminDashboard.classList.add('active');
       this.adminNav.classList.remove('hidden');
       this.renderAdminDashboard();
+      if (pushHistory) {
+        history.pushState({ view: 'admin', tab: this.currentAdminTab || 'requestsTab' }, '', '#admin');
+      }
     } else if (viewName === 'client') {
       this.viewClientPortal.classList.add('active');
       this.clientNav.classList.remove('hidden');
       this.renderClientPortal();
+      if (pushHistory) {
+        history.pushState({ view: 'client', tab: this.currentClientTab || 'categoriesTab' }, '', '#client');
+      }
     } else {
       this.viewLanding.classList.add('active');
       this.landingNav.classList.remove('hidden');
+      if (pushHistory) {
+        history.pushState({ view: 'landing' }, '', '#home');
+      }
     }
 
     this.updateHeaderAuthState();
@@ -446,11 +548,11 @@ class AariApp {
   openLoginModal(defaultTab = 'client') {
     this.switchLoginTab(defaultTab);
     this.adminLoginError.classList.add('hidden');
-    this.loginModal.classList.add('open');
+    this.openModal(this.loginModal, 'login');
   }
 
   closeLoginModal() {
-    this.loginModal.classList.remove('open');
+    this.closeModal(this.loginModal);
   }
 
   switchLoginTab(tab) {
@@ -504,11 +606,11 @@ class AariApp {
     this.budgetSliderMid.textContent = this.formatCurrency((category.minBudget + category.maxBudget) / 2);
 
     this.updateBudgetCalculations();
-    this.inquiryModal.classList.add('open');
+    this.openModal(this.inquiryModal, 'inquire');
   }
 
   closeInquiryModal() {
-    this.inquiryModal.classList.remove('open');
+    this.closeModal(this.inquiryModal);
   }
 
   updateBudgetCalculations() {
@@ -585,7 +687,8 @@ class AariApp {
       });
     }
 
-    this.closeInquiryModal();
+    // Close inquiry modal without pushing an extra back
+    this.inquiryModal.classList.remove('open');
     this.openConfirmationModal(newReq);
     this.updatePendingCount();
   }
@@ -625,11 +728,11 @@ class AariApp {
       </div>
     `;
 
-    this.confirmationModal.classList.add('open');
+    this.openModal(this.confirmationModal, 'confirmation');
   }
 
   closeConfirmationModal() {
-    this.confirmationModal.classList.remove('open');
+    this.closeModal(this.confirmationModal);
   }
 
   /* ---------------------------------------------------------------------
@@ -656,11 +759,11 @@ class AariApp {
       </div>
     `;
 
-    this.adminApprovalModal.classList.add('open');
+    this.openModal(this.adminApprovalModal, 'approval');
   }
 
   closeApprovalModal() {
-    this.adminApprovalModal.classList.remove('open');
+    this.closeModal(this.adminApprovalModal);
   }
 
   handleApprovalSubmit(e) {
@@ -762,10 +865,15 @@ class AariApp {
     this.updatePendingCount();
   }
 
-  switchClientTab(tabName) {
+  switchClientTab(tabName, pushHistory = true) {
+    this.currentClientTab = tabName;
     this.tabCategoriesContent.classList.remove('active');
     this.tabMyRequestsContent.classList.remove('active');
     this.tabPortfolioContent.classList.remove('active');
+
+    document.querySelectorAll('#clientNav .nav-tab').forEach(t => t.classList.remove('active'));
+    const tabBtn = document.querySelector(`#clientNav [data-target-tab="${tabName}"]`);
+    if (tabBtn) tabBtn.classList.add('active');
 
     if (tabName === 'myRequestsTab') {
       this.tabMyRequestsContent.classList.add('active');
@@ -775,6 +883,10 @@ class AariApp {
       this.renderPortfolio();
     } else {
       this.tabCategoriesContent.classList.add('active');
+    }
+
+    if (pushHistory && tabName !== 'categoriesTab') {
+      history.pushState({ view: 'client', tab: tabName }, '', '#' + tabName);
     }
   }
 
@@ -872,7 +984,8 @@ class AariApp {
     this.metricCancelled.textContent = cancelled;
   }
 
-  switchAdminTab(tabName) {
+  switchAdminTab(tabName, pushHistory = true) {
+    this.currentAdminTab = tabName;
     document.querySelectorAll('.admin-tab-pane').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('#adminNav .nav-tab').forEach(t => t.classList.remove('active'));
 
@@ -887,6 +1000,10 @@ class AariApp {
     } else {
       document.getElementById('paneRequests').classList.add('active');
       this.renderAdminRequests();
+    }
+
+    if (pushHistory && tabName !== 'requestsTab') {
+      history.pushState({ view: 'admin', tab: tabName }, '', '#' + tabName);
     }
   }
 
@@ -1121,12 +1238,14 @@ class AariApp {
         <button class="nav-tab active" data-admin-tab="requestsTab">Client Requests (${this.requests.filter(r => r.status==='Pending').length})</button>
         <button class="nav-tab" data-admin-tab="approvedTab">Approved Units</button>
         <button class="nav-tab" data-admin-tab="addCustomerTab">+ Add Customer</button>
+        <button class="btn btn-outline w-full mt-sm btn-drawer-back-showcase">← Back to Showcase</button>
       `;
     } else if (this.currentUser) {
       linksHtml = `
         <button class="nav-tab active" data-target-tab="categoriesTab">Explore Categories</button>
         <button class="nav-tab" data-target-tab="myRequestsTab">My Requests</button>
         <button class="nav-tab" data-target-tab="portfolioTab">Completed Landmarks</button>
+        <button class="btn btn-outline w-full mt-sm btn-drawer-back-showcase">← Back to Showcase</button>
       `;
     } else {
       linksHtml = `
@@ -1148,6 +1267,13 @@ class AariApp {
         const clientTab = btn.getAttribute('data-target-tab');
         if (adminTab) this.switchAdminTab(adminTab);
         if (clientTab) this.switchClientTab(clientTab);
+      });
+    });
+
+    this.mobileDrawerContent.querySelectorAll('.btn-drawer-back-showcase').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.mobileDrawer.classList.remove('open');
+        this.switchView('landing');
       });
     });
 
