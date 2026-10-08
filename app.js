@@ -279,11 +279,13 @@ class AariApp {
     this.tabBtnClient.addEventListener('click', () => this.switchLoginTab('client'));
     this.tabBtnAdmin.addEventListener('click', () => this.switchLoginTab('admin'));
 
-    // Autofill Admin Credentials
-    this.btnAutofillAdmin.addEventListener('click', () => {
-      this.adminLoginUser.value = CONFIG.admin.username;
-      this.adminLoginPass.value = CONFIG.admin.password;
-    });
+    // Autofill Admin Credentials (if present in DOM)
+    if (this.btnAutofillAdmin) {
+      this.btnAutofillAdmin.addEventListener('click', () => {
+        this.adminLoginUser.value = CONFIG.admin.username;
+        this.adminLoginPass.value = CONFIG.admin.password;
+      });
+    }
 
     // Form: Client Login
     this.clientLoginForm.addEventListener('submit', (e) => {
