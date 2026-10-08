@@ -8,6 +8,7 @@
 
 import {
   CONFIG,
+  PREVIOUS_PROJECTS,
   HISTORICAL_PROJECTS,
   CATEGORIES,
   CUSTOMIZATION_TIERS,
@@ -971,9 +972,10 @@ class AariApp {
      --------------------------------------------------------------------- */
   renderPortfolio() {
     const filter = this.activePortfolioFilter;
+    const projectList = PREVIOUS_PROJECTS || HISTORICAL_PROJECTS;
     const filtered = filter === 'all' 
-      ? HISTORICAL_PROJECTS 
-      : HISTORICAL_PROJECTS.filter(p => p.category === filter);
+      ? projectList 
+      : projectList.filter(p => p.category === filter);
 
     const html = filtered.map(item => `
       <div class="portfolio-card">
@@ -997,7 +999,7 @@ class AariApp {
       </div>
     `).join('');
 
-    const grid = document.getElementById('historicalGrid');
+    const grid = document.getElementById('portfolioGrid') || document.getElementById('historicalGrid');
     if (grid) grid.innerHTML = html;
 
     if (this.clientPortfolioGrid) {
@@ -1567,13 +1569,13 @@ class AariApp {
       linksHtml = `
         <button class="nav-tab ${curTab==='categoriesTab'?'active':''}" data-target-tab="categoriesTab">Explore Categories</button>
         <button class="nav-tab ${curTab==='myRequestsTab'?'active':''}" data-target-tab="myRequestsTab">My Requests (${myCount})</button>
-        <button class="nav-tab ${curTab==='portfolioTab'?'active':''}" data-target-tab="portfolioTab">Completed Landmarks</button>
+        <button class="nav-tab ${curTab==='portfolioTab'?'active':''}" data-target-tab="portfolioTab">Previous Projects</button>
         <button class="btn btn-outline w-full mt-sm btn-drawer-back-showcase">← Back to Showcase</button>
       `;
     } else {
       linksHtml = `
         <a href="#heroSection" class="nav-link">Home</a>
-        <a href="#historicalSection" class="nav-link">Historical Projects</a>
+        <a href="#projectsSection" class="nav-link">Previous Projects</a>
         <a href="#categoriesSection" class="nav-link">Categories</a>
         <a href="#ownerSection" class="nav-link">About Owner</a>
         <button class="btn btn-primary w-full mt-sm btn-trigger-login">Sign In / Login</button>

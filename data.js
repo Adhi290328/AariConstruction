@@ -1,6 +1,6 @@
 /**
  * AARI CONSTRUCTION — Application Data Store
- * Historical Portfolio, Category Definitions, and Request State Management
+ * Previous Projects Portfolio, Category Definitions, and Request State Management
  */
 
 export const CONFIG = {
@@ -20,7 +20,7 @@ export const CONFIG = {
   }
 };
 
-export const HISTORICAL_PROJECTS = [
+export const PREVIOUS_PROJECTS = [
   {
     id: "proj-1",
     title: "Emerald Bay Luxury Residency",
@@ -94,6 +94,8 @@ export const HISTORICAL_PROJECTS = [
     tags: ["Landmark", "Central Chennai", "14 Floors"]
   }
 ];
+
+export const HISTORICAL_PROJECTS = PREVIOUS_PROJECTS;
 
 export const CATEGORIES = [
   {
