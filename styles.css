@@ -1684,10 +1684,91 @@ img {
   border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
-.status-badge.cancelled {
+.status-badge.needs_start {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.status-badge.processing {
+  background: rgba(139, 92, 246, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.status-badge.finished {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.status-badge.rejected, .status-badge.cancelled {
   background: var(--rose-bg);
   color: var(--rose-500);
   border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+/* Building Construction Lifecycle Progress Bar */
+.building-stage-bar {
+  margin: 0.85rem 0 0.5rem;
+  background: var(--bg-card);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.stage-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.stage-bar-title {
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stage-bar-pct {
+  font-weight: 800;
+  color: var(--gold-400);
+}
+
+.progress-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.progress-fill.needs_start {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.progress-fill.processing {
+  background: linear-gradient(90deg, #8b5cf6, #c084fc);
+}
+
+.progress-fill.finished {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.stage-notes-snippet {
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 

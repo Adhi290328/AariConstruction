@@ -179,7 +179,7 @@ export const CUSTOMIZATION_TIERS = [
   }
 ];
 
-// Seed sample requests for instant realistic demonstration
+// Seed sample requests with realistic construction lifecycle stages
 export const INITIAL_REQUESTS = [
   {
     id: "REQ-2026-101",
@@ -193,11 +193,14 @@ export const INITIAL_REQUESTS = [
     budgetText: "₹1.85 Crores",
     customizationTier: "full_finished",
     approxSqft: 3400,
-    notes: "Requires east-facing pooja room and electric vehicle charging port in portico.",
+    notes: "Requires east-facing pooja room and EV charging port in portico.",
     createdAt: "2026-10-06 10:30 AM",
-    status: "Pending", // Pending | Approved | Cancelled
+    status: "Pending", // Pending | Approved | Rejected
     assignedFlat: "",
-    adminNotes: "Called client. Initial meeting scheduled for Saturday. Advance cheque collection pending."
+    constructionStage: "Pending", // Pending | Needs to Start | Processing | Finished | Rejected
+    progressPercent: 0,
+    progressStageNotes: "Awaiting phone verification call for token advance payment.",
+    adminNotes: "Called client. Advance token payment verification pending."
   },
   {
     id: "REQ-2026-094",
@@ -215,6 +218,9 @@ export const INITIAL_REQUESTS = [
     createdAt: "2026-10-04 03:15 PM",
     status: "Approved",
     assignedFlat: "Tower B - Flat 402",
+    constructionStage: "Processing",
+    progressPercent: 65,
+    progressStageNotes: "Brick masonry and concealed conduits completed. Plastering & tile primer in progress.",
     adminNotes: "Advance token verified. Structural modifications approved by chief engineer."
   },
   {
@@ -231,9 +237,54 @@ export const INITIAL_REQUESTS = [
     approxSqft: 1850,
     notes: "We have own plot in KK Nagar. Need structure completed within 6 months.",
     createdAt: "2026-10-02 11:00 AM",
-    status: "Pending",
+    status: "Approved",
+    assignedFlat: "Plot #14 - Sunstone Enclave",
+    constructionStage: "Needs to Start",
+    progressPercent: 12,
+    progressStageNotes: "Site clearance completed. Soil testing done. Foundation excavation starts Monday.",
+    adminNotes: "Advance token verified. Soil test report submitted to municipal corporation."
+  },
+  {
+    id: "REQ-2026-079",
+    clientName: "Aravindh & Priya",
+    clientEmail: "aravindh.p@gmail.com",
+    clientPhone: "+91 98402 77112",
+    category: "Villas",
+    bhk: "4 BHK Grande",
+    city: "ECR, Chennai",
+    budgetNum: 21000000,
+    budgetText: "₹2.10 Crores",
+    customizationTier: "full_finished",
+    approxSqft: 3800,
+    notes: "Private plunge pool with landscaped deck and automated irrigation system.",
+    createdAt: "2026-09-28 04:45 PM",
+    status: "Approved",
+    assignedFlat: "Villa Rosa - Plot 08",
+    constructionStage: "Finished",
+    progressPercent: 100,
+    progressStageNotes: "Project 100% completed. Handover certified and keys presented to customer.",
+    adminNotes: "Full payment received. Handover inspection sign-off completed."
+  },
+  {
+    id: "REQ-2026-065",
+    clientName: "Karthikeyan N",
+    clientEmail: "karthik.civil@yahoo.com",
+    clientPhone: "+91 97103 44556",
+    category: "Apartments",
+    bhk: "2 BHK Smart",
+    city: "Coimbatore",
+    budgetNum: 3500000,
+    budgetText: "₹35.0 Lakhs",
+    customizationTier: "bare_bones",
+    approxSqft: 950,
+    notes: "Interested in ground floor with parking.",
+    createdAt: "2026-09-25 09:15 AM",
+    status: "Rejected",
     assignedFlat: "",
-    adminNotes: "Site inspection done. Need to verify boundary survey map and confirm token advance."
+    constructionStage: "Rejected",
+    progressPercent: 0,
+    progressStageNotes: "Inquiry cancelled upon manual verification.",
+    adminNotes: "Customer cancelled inquiry due to relocation outside Tamil Nadu."
   }
 ];
 

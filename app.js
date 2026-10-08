@@ -2,7 +2,8 @@
  * AARI CONSTRUCTION — Application Controller
  * Handles view switching, authentication, interactive quotation estimator,
  * request lifecycle, site owner contact flow, and admin verification pipeline.
- * Includes complete Mobile Back-Button navigation support (popstate/history stack).
+ * Admin view is strictly isolated to managing client requests and construction stages:
+ * Pending, Approved, Needs to Start, Processing, Finished, Rejected.
  */
 
 import {
@@ -20,13 +21,13 @@ class AariApp {
     this.currentUser = this.loadUserSession();
     this.activePortfolioFilter = 'all';
     this.selectedCategory = CATEGORIES[0];
-    this.activeAdminStatusFilter = 'Pending';
+    this.activeAdminFilter = 'all';
     this.adminSearchQuery = '';
 
     // History & Navigation State Tracking
     this.currentView = 'landing';
     this.currentClientTab = 'categoriesTab';
-    this.currentAdminTab = 'requestsTab';
+    this.currentAdminTab = 'allTab';
 
     this.initElements();
     this.bindEvents();
@@ -35,7 +36,8 @@ class AariApp {
     
     // Set initial baseline history state
     if (!history.state) {
-      history.replaceState({ view: 'landing' }, '', window.location.hash || '#home');
+      const initialView = (this.currentUser && this.currentUser.role === 'admin') ? 'admin' : 'landing';
+      history.replaceState({ view: initialView }, '', window.location.hash || '#home');
     }
 
     // Resume session or show landing page
@@ -93,7 +95,14 @@ class AariApp {
     this.headerUserName = document.getElementById('headerUserName');
     this.headerUserRole = document.getElementById('headerUserRole');
     this.userRequestCount = document.getElementById('userRequestCount');
-    this.pendingRequestCount = document.getElementById('pendingRequestCount');
+
+    // Admin Nav Count Badges
+    this.adminAllCount = document.getElementById('adminAllCount');
+    this.adminPendingNavCount = document.getElementById('adminPendingNavCount');
+    this.adminNeedsStartNavCount = document.getElementById('adminNeedsStartNavCount');
+    this.adminProcessingNavCount = document.getElementById('adminProcessingNavCount');
+    this.adminFinishedNavCount = document.getElementById('adminFinishedNavCount');
+    this.adminRejectedNavCount = document.getElementById('adminRejectedNavCount');
 
     // Buttons
     this.btnOpenLoginModal = document.getElementById('btnOpenLoginModal');
@@ -105,7 +114,6 @@ class AariApp {
 
     // Step-back Buttons
     this.btnBackFromClient = document.getElementById('btnBackFromClient');
-    this.btnBackFromAdmin = document.getElementById('btnBackFromAdmin');
     this.btnCancelInquiryModal = document.getElementById('btnCancelInquiryModal');
 
     // Modals
@@ -118,6 +126,27 @@ class AariApp {
     this.adminApprovalModal = document.getElementById('adminApprovalModal');
     this.btnCloseApprovalModal = document.getElementById('btnCloseApprovalModal');
     this.btnCancelApprovalModal = document.getElementById('btnCancelApprovalModal');
+
+    // Admin Progress Modal Elements
+    this.adminProgressModal = document.getElementById('adminProgressModal');
+    this.btnCloseProgressModal = document.getElementById('btnCloseProgressModal');
+    this.btnCancelProgressModal = document.getElementById('btnCancelProgressModal');
+    this.adminProgressForm = document.getElementById('adminProgressForm');
+    this.progressReqId = document.getElementById('progressReqId');
+    this.progressClientPreview = document.getElementById('progressClientPreview');
+    this.selectConstructionStage = document.getElementById('selectConstructionStage');
+    this.rangeProgressPercent = document.getElementById('rangeProgressPercent');
+    this.progressPercentDisplay = document.getElementById('progressPercentDisplay');
+    this.inputStageNotes = document.getElementById('inputStageNotes');
+
+    // Admin Reject Modal Elements
+    this.adminRejectModal = document.getElementById('adminRejectModal');
+    this.btnCloseRejectModal = document.getElementById('btnCloseRejectModal');
+    this.btnCancelRejectModal = document.getElementById('btnCancelRejectModal');
+    this.adminRejectForm = document.getElementById('adminRejectForm');
+    this.rejectReqId = document.getElementById('rejectReqId');
+    this.rejectClientPreview = document.getElementById('rejectClientPreview');
+    this.rejectReason = document.getElementById('rejectReason');
 
     // Login Form Elements
     this.tabBtnClient = document.getElementById('tabBtnClient');
@@ -175,8 +204,10 @@ class AariApp {
     // KPI Counters
     this.metricTotal = document.getElementById('metricTotal');
     this.metricPending = document.getElementById('metricPending');
-    this.metricApproved = document.getElementById('metricApproved');
-    this.metricCancelled = document.getElementById('metricCancelled');
+    this.metricNeedsStart = document.getElementById('metricNeedsStart');
+    this.metricProcessing = document.getElementById('metricProcessing');
+    this.metricFinished = document.getElementById('metricFinished');
+    this.metricRejected = document.getElementById('metricRejected');
 
     // Client Portal Elements
     this.clientWelcomeName = document.getElementById('clientWelcomeName');
@@ -196,11 +227,13 @@ class AariApp {
     // Intercept Browser & Mobile Hardware Back Button (Popstate)
     window.addEventListener('popstate', (e) => this.handlePopState(e));
 
-    // Brand Logo Click -> Go to Landing or Client Portal
+    // Brand Logo Click
     this.brandLogoBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      // Admin should stay strictly in admin portal and NOT go to landing page
       if (this.currentUser && this.currentUser.role === 'admin') {
-        this.switchView('admin');
+        this.switchView('admin', false);
+        this.switchAdminTab('allTab', false);
       } else if (this.currentUser) {
         this.switchView('client');
       } else {
@@ -211,9 +244,6 @@ class AariApp {
     // Step-Back Buttons
     if (this.btnBackFromClient) {
       this.btnBackFromClient.addEventListener('click', () => this.switchView('landing'));
-    }
-    if (this.btnBackFromAdmin) {
-      this.btnBackFromAdmin.addEventListener('click', () => this.switchView('landing'));
     }
     if (this.btnCancelInquiryModal) {
       this.btnCancelInquiryModal.addEventListener('click', () => this.closeInquiryModal());
@@ -275,16 +305,17 @@ class AariApp {
           email: CONFIG.owner.email
         });
         this.closeLoginModal();
-        this.switchView('admin');
+        // Redirect directly to Admin Portal (never show landing)
+        this.switchView('admin', true);
       } else {
         this.adminLoginError.classList.remove('hidden');
       }
     });
 
-    // Logout
+    // Logout: Only logout takes the user/admin back to landing page
     this.btnLogout.addEventListener('click', () => {
       this.saveUserSession(null);
-      this.switchView('landing');
+      this.switchView('landing', true);
     });
 
     // Mobile Hamburger Menu
@@ -371,8 +402,13 @@ class AariApp {
     });
 
     this.adminStatusFilter.addEventListener('change', (e) => {
-      this.activeAdminStatusFilter = e.target.value;
-      this.renderAdminRequests();
+      const val = e.target.value;
+      if (val === 'all') this.switchAdminTab('allTab');
+      else if (val === 'Pending') this.switchAdminTab('pendingTab');
+      else if (val === 'Needs to Start') this.switchAdminTab('needsStartTab');
+      else if (val === 'Processing') this.switchAdminTab('processingTab');
+      else if (val === 'Finished') this.switchAdminTab('finishedTab');
+      else if (val === 'Rejected') this.switchAdminTab('rejectedTab');
     });
 
     // Admin Quick Add Customer Button
@@ -391,6 +427,25 @@ class AariApp {
     });
     this.adminApprovalForm.addEventListener('submit', (e) => this.handleApprovalSubmit(e));
 
+    // Admin Progress Modal Events
+    this.btnCloseProgressModal.addEventListener('click', () => this.closeProgressModal());
+    this.btnCancelProgressModal.addEventListener('click', () => this.closeProgressModal());
+    this.adminProgressModal.addEventListener('click', (e) => {
+      if (e.target === this.adminProgressModal) this.closeProgressModal();
+    });
+    this.rangeProgressPercent.addEventListener('input', (e) => {
+      this.progressPercentDisplay.textContent = `${e.target.value}%`;
+    });
+    this.adminProgressForm.addEventListener('submit', (e) => this.handleProgressSubmit(e));
+
+    // Admin Reject Modal Events
+    this.btnCloseRejectModal.addEventListener('click', () => this.closeRejectModal());
+    this.btnCancelRejectModal.addEventListener('click', () => this.closeRejectModal());
+    this.adminRejectModal.addEventListener('click', (e) => {
+      if (e.target === this.adminRejectModal) this.closeRejectModal();
+    });
+    this.adminRejectForm.addEventListener('submit', (e) => this.handleRejectSubmit(e));
+
     // Client Scroll To Categories
     if (this.btnScrollToCategories) {
       this.btnScrollToCategories.addEventListener('click', () => {
@@ -400,7 +455,7 @@ class AariApp {
   }
 
   /* ---------------------------------------------------------------------
-     MOBILE POPSTATE / BACK BUTTON HANDLER (1-Step Back Control)
+     MOBILE POPSTATE / BACK BUTTON HANDLER
      --------------------------------------------------------------------- */
   handlePopState(e) {
     // 1. If any modal is currently open, close it first and prevent page exit!
@@ -416,27 +471,27 @@ class AariApp {
       return;
     }
 
-    // 3. If there is a recorded view state in history, restore it
-    if (e.state && e.state.view) {
-      this.switchView(e.state.view, false);
-      if (e.state.view === 'client' && e.state.tab) {
-        this.switchClientTab(e.state.tab, false);
-      } else if (e.state.view === 'admin' && e.state.tab) {
-        this.switchAdminTab(e.state.tab, false);
+    // 3. For Admin: NEVER go back to landing page! Stay strictly in Admin view
+    if (this.currentUser && this.currentUser.role === 'admin') {
+      if (this.currentAdminTab !== 'allTab') {
+        this.switchAdminTab('allTab', false);
       }
       return;
     }
 
-    // 4. Fallback navigation step-back:
+    // 4. For Client / Guests:
+    if (e.state && e.state.view) {
+      this.switchView(e.state.view, false);
+      if (e.state.view === 'client' && e.state.tab) {
+        this.switchClientTab(e.state.tab, false);
+      }
+      return;
+    }
+
+    // 5. Fallback navigation step-back for client:
     if (this.currentView === 'client') {
       if (this.currentClientTab && this.currentClientTab !== 'categoriesTab') {
         this.switchClientTab('categoriesTab', false);
-      } else {
-        this.switchView('landing', false);
-      }
-    } else if (this.currentView === 'admin') {
-      if (this.currentAdminTab && this.currentAdminTab !== 'requestsTab') {
-        this.switchAdminTab('requestsTab', false);
       } else {
         this.switchView('landing', false);
       }
@@ -466,6 +521,11 @@ class AariApp {
      VIEW ROUTING & AUTH HEADER STATE
      --------------------------------------------------------------------- */
   switchView(viewName, pushHistory = true) {
+    // CRITICAL: Admin should NEVER see or be redirected to landing page
+    if (this.currentUser && this.currentUser.role === 'admin' && viewName === 'landing') {
+      viewName = 'admin';
+    }
+
     this.currentView = viewName;
     this.viewLanding.classList.remove('active');
     this.viewClientPortal.classList.remove('active');
@@ -480,7 +540,7 @@ class AariApp {
       this.adminNav.classList.remove('hidden');
       this.renderAdminDashboard();
       if (pushHistory) {
-        history.pushState({ view: 'admin', tab: this.currentAdminTab || 'requestsTab' }, '', '#admin');
+        history.pushState({ view: 'admin', tab: this.currentAdminTab || 'allTab' }, '', '#admin');
       }
     } else if (viewName === 'client') {
       this.viewClientPortal.classList.add('active');
@@ -526,11 +586,6 @@ class AariApp {
   }
 
   updatePendingCount() {
-    const pending = this.requests.filter(r => r.status === 'Pending').length;
-    if (this.pendingRequestCount) {
-      this.pendingRequestCount.textContent = pending;
-    }
-
     if (this.currentUser && this.currentUser.role === 'client') {
       const myCount = this.requests.filter(r => 
         (r.clientEmail && r.clientEmail.toLowerCase() === this.currentUser.email.toLowerCase()) ||
@@ -540,6 +595,7 @@ class AariApp {
         this.userRequestCount.textContent = myCount;
       }
     }
+    this.updateAdminKPIs();
   }
 
   /* ---------------------------------------------------------------------
@@ -580,13 +636,11 @@ class AariApp {
     this.inquiryModalTitle.textContent = `Configure Quotation — ${category.name}`;
     this.inquiryModalSubtitle = `Tailored estimates for ${category.name}. From Bare Bones structure to luxury turnkey finishing.`;
 
-    // Populate user info if logged in
     if (this.currentUser && this.currentUser.role === 'client') {
       this.inqClientName.value = this.currentUser.name;
       this.inqClientEmail.value = this.currentUser.email;
     }
 
-    // Populate BHK options
     this.inqBHKSelect.innerHTML = '';
     category.bhkOptions.forEach(opt => {
       const el = document.createElement('option');
@@ -595,10 +649,9 @@ class AariApp {
       this.inqBHKSelect.appendChild(el);
     });
 
-    // Setup Slider boundaries
     this.inqBudgetSlider.min = category.minBudget;
     this.inqBudgetSlider.max = category.maxBudget;
-    this.inqBudgetSlider.step = 250000; // 2.5L increments
+    this.inqBudgetSlider.step = 250000;
     this.inqBudgetSlider.value = category.defaultBudget;
 
     this.budgetSliderMin.textContent = this.formatCurrency(category.minBudget);
@@ -620,7 +673,6 @@ class AariApp {
     const tierId = this.inqCustomTier.value;
     const tier = CUSTOMIZATION_TIERS.find(t => t.id === tierId) || CUSTOMIZATION_TIERS[1];
     
-    // Calculate rate based on category and tier
     const baseRate = this.selectedCategory.avgSqftRate || 2200;
     const effectiveRate = Math.round(baseRate * (tier.rateMultiplier || 1.2));
     const approxSqft = Math.round(rawVal / effectiveRate);
@@ -649,7 +701,6 @@ class AariApp {
     const budgetVal = parseInt(this.inqBudgetSlider.value, 10);
     const notes = this.inqNotes.value.trim();
 
-    // Calculate approx sqft
     const baseRate = this.selectedCategory.avgSqftRate || 2200;
     const effectiveRate = Math.round(baseRate * (tierObj.rateMultiplier || 1.2));
     const approxSqft = Math.round(budgetVal / effectiveRate);
@@ -669,16 +720,17 @@ class AariApp {
       approxSqft: approxSqft,
       notes: notes || "Direct quotation request via portal.",
       createdAt: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-      status: "Pending", // Pending | Approved | Cancelled
+      status: "Pending", // Pending | Approved | Rejected
       assignedFlat: "",
+      constructionStage: "Pending", // Needs to Start | Processing | Finished | Rejected
+      progressPercent: 0,
+      progressStageNotes: "Awaiting phone verification call for token advance payment.",
       adminNotes: "New registration inquiry. Awaiting phone call for manual payment verification."
     };
 
-    // Prepend to requests list
     this.requests.unshift(newReq);
     saveRequests(this.requests);
 
-    // If user wasn't registered in current session, register them
     if (!this.currentUser) {
       this.saveUserSession({
         role: 'client',
@@ -687,7 +739,6 @@ class AariApp {
       });
     }
 
-    // Close inquiry modal without pushing an extra back
     this.inquiryModal.classList.remove('open');
     this.openConfirmationModal(newReq);
     this.updatePendingCount();
@@ -777,8 +828,104 @@ class AariApp {
       req.status = 'Approved';
       req.assignedFlat = flatNo;
       req.adminNotes = notes;
+      // When approving, default construction stage to "Needs to Start"
+      if (!req.constructionStage || req.constructionStage === 'Pending') {
+        req.constructionStage = 'Needs to Start';
+        req.progressPercent = 10;
+        req.progressStageNotes = 'Advance verified. Architectural drawings & foundation excavation in prep.';
+      }
       saveRequests(this.requests);
       this.closeApprovalModal();
+      this.renderAdminDashboard();
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     MODAL CONTROLS: BUILDING CONSTRUCTION PROGRESS UPDATE
+     --------------------------------------------------------------------- */
+  openProgressModal(reqId) {
+    const req = this.requests.find(r => r.id === reqId);
+    if (!req) return;
+
+    this.progressReqId.value = req.id;
+    this.selectConstructionStage.value = req.constructionStage || 'Needs to Start';
+    this.rangeProgressPercent.value = req.progressPercent || (req.constructionStage === 'Finished' ? 100 : 30);
+    this.progressPercentDisplay.textContent = `${this.rangeProgressPercent.value}%`;
+    this.inputStageNotes.value = req.progressStageNotes || '';
+
+    this.progressClientPreview.innerHTML = `
+      <div style="background:var(--bg-card); padding:0.85rem; border-radius:var(--radius-md); margin-bottom:1rem; font-size:0.85rem;">
+        <div style="font-weight:700; color:#fff; font-size:1rem; margin-bottom:0.25rem;">
+          ${this.escapeHtml(req.clientName)} — <strong>${this.escapeHtml(req.assignedFlat || req.category)}</strong>
+        </div>
+        <div style="color:var(--text-muted); display:flex; flex-wrap:wrap; gap:1rem;">
+          <span>Ref: <strong style="color:var(--gold-400);">${req.id}</strong></span>
+          <span>Category: <strong>${this.escapeHtml(req.category)} (${this.escapeHtml(req.bhk)})</strong></span>
+          <span>Location: <strong>${this.escapeHtml(req.city)}</strong></span>
+        </div>
+      </div>
+    `;
+
+    this.openModal(this.adminProgressModal, 'progress');
+  }
+
+  closeProgressModal() {
+    this.closeModal(this.adminProgressModal);
+  }
+
+  handleProgressSubmit(e) {
+    e.preventDefault();
+    const reqId = this.progressReqId.value;
+    const stage = this.selectConstructionStage.value;
+    const pct = parseInt(this.rangeProgressPercent.value, 10);
+    const notes = this.inputStageNotes.value.trim();
+
+    const req = this.requests.find(r => r.id === reqId);
+    if (req) {
+      req.constructionStage = stage;
+      req.progressPercent = pct;
+      req.progressStageNotes = notes;
+      if (stage === 'Finished') {
+        req.progressPercent = 100;
+      }
+      saveRequests(this.requests);
+      this.closeProgressModal();
+      this.renderAdminDashboard();
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     MODAL CONTROLS: ADMIN REJECT INQUIRY
+     --------------------------------------------------------------------- */
+  openRejectModal(reqId) {
+    const req = this.requests.find(r => r.id === reqId);
+    if (!req) return;
+
+    this.rejectReqId.value = req.id;
+    this.rejectReason.value = req.adminNotes || 'Client declined / budget mismatch during verification call.';
+    this.rejectClientPreview.innerHTML = `
+      Reject inquiry for <strong>${this.escapeHtml(req.clientName)}</strong> (${req.id} - ${req.category})?
+    `;
+
+    this.openModal(this.adminRejectModal, 'reject');
+  }
+
+  closeRejectModal() {
+    this.closeModal(this.adminRejectModal);
+  }
+
+  handleRejectSubmit(e) {
+    e.preventDefault();
+    const reqId = this.rejectReqId.value;
+    const reason = this.rejectReason.value.trim();
+
+    const req = this.requests.find(r => r.id === reqId);
+    if (req) {
+      req.status = 'Rejected';
+      req.constructionStage = 'Rejected';
+      req.adminNotes = reason;
+      saveRequests(this.requests);
+      this.closeRejectModal();
       this.renderAdminDashboard();
     }
   }
@@ -845,7 +992,6 @@ class AariApp {
       </div>
     `).join('');
 
-    // Attach click listeners to category cards
     document.querySelectorAll('.btn-configure-cat').forEach(btn => {
       btn.addEventListener('click', () => {
         const catId = btn.getAttribute('data-cat-id');
@@ -895,7 +1041,6 @@ class AariApp {
     const userEmail = (this.currentUser.email || '').toLowerCase();
     const userName = (this.currentUser.name || '').toLowerCase();
 
-    // Match requests for this customer
     const myRequests = this.requests.filter(r => 
       (r.clientEmail && r.clientEmail.toLowerCase() === userEmail) ||
       (r.clientName && r.clientName.toLowerCase() === userName)
@@ -921,11 +1066,12 @@ class AariApp {
       let statusClass = 'pending';
       let statusLabel = 'Pending Manual Verification (Call Needed)';
       if (req.status === 'Approved') {
-        statusClass = 'approved';
-        statusLabel = `Approved • Flat Allotted: ${req.assignedFlat || 'Confirmed'}`;
-      } else if (req.status === 'Cancelled') {
-        statusClass = 'cancelled';
-        statusLabel = 'Cancelled';
+        const stage = req.constructionStage || 'Needs to Start';
+        statusClass = stage === 'Finished' ? 'finished' : (stage === 'Processing' ? 'processing' : 'needs_start');
+        statusLabel = `Approved • ${stage} (${req.progressPercent || 0}%) • Unit: ${req.assignedFlat || 'Confirmed'}`;
+      } else if (req.status === 'Rejected') {
+        statusClass = 'rejected';
+        statusLabel = 'Rejected / Cancelled';
       }
 
       return `
@@ -944,9 +1090,9 @@ class AariApp {
             <div>
               <span class="status-badge ${statusClass}">${statusLabel}</span>
             </div>
-            ${req.adminNotes ? `
+            ${req.progressStageNotes ? `
               <div style="background:var(--bg-card); padding:0.6rem 0.85rem; border-radius:var(--radius-sm); font-size:0.82rem; margin-top:0.75rem; color:var(--text-secondary);">
-                💬 <strong>Admin Update:</strong> ${this.escapeHtml(req.adminNotes)}
+                🏗️ <strong>Site Status:</strong> ${this.escapeHtml(req.progressStageNotes)}
               </div>
             ` : ''}
           </div>
@@ -975,13 +1121,26 @@ class AariApp {
   updateAdminKPIs() {
     const total = this.requests.length;
     const pending = this.requests.filter(r => r.status === 'Pending').length;
-    const approved = this.requests.filter(r => r.status === 'Approved').length;
-    const cancelled = this.requests.filter(r => r.status === 'Cancelled').length;
+    const needsStart = this.requests.filter(r => r.constructionStage === 'Needs to Start').length;
+    const processing = this.requests.filter(r => r.constructionStage === 'Processing').length;
+    const finished = this.requests.filter(r => r.constructionStage === 'Finished').length;
+    const rejected = this.requests.filter(r => r.status === 'Rejected').length;
 
-    this.metricTotal.textContent = total;
-    this.metricPending.textContent = pending;
-    this.metricApproved.textContent = approved;
-    this.metricCancelled.textContent = cancelled;
+    // KPI Cards
+    if (this.metricTotal) this.metricTotal.textContent = total;
+    if (this.metricPending) this.metricPending.textContent = pending;
+    if (this.metricNeedsStart) this.metricNeedsStart.textContent = needsStart;
+    if (this.metricProcessing) this.metricProcessing.textContent = processing;
+    if (this.metricFinished) this.metricFinished.textContent = finished;
+    if (this.metricRejected) this.metricRejected.textContent = rejected;
+
+    // Header Nav Counts
+    if (this.adminAllCount) this.adminAllCount.textContent = total;
+    if (this.adminPendingNavCount) this.adminPendingNavCount.textContent = pending;
+    if (this.adminNeedsStartNavCount) this.adminNeedsStartNavCount.textContent = needsStart;
+    if (this.adminProcessingNavCount) this.adminProcessingNavCount.textContent = processing;
+    if (this.adminFinishedNavCount) this.adminFinishedNavCount.textContent = finished;
+    if (this.adminRejectedNavCount) this.adminRejectedNavCount.textContent = rejected;
   }
 
   switchAdminTab(tabName, pushHistory = true) {
@@ -992,17 +1151,26 @@ class AariApp {
     const tabBtn = document.querySelector(`#adminNav [data-admin-tab="${tabName}"]`);
     if (tabBtn) tabBtn.classList.add('active');
 
-    if (tabName === 'approvedTab') {
-      document.getElementById('paneApproved').classList.add('active');
-      this.renderAdminApprovedGrid();
-    } else if (tabName === 'addCustomerTab') {
+    if (tabName === 'addCustomerTab') {
       document.getElementById('paneAddCustomer').classList.add('active');
     } else {
       document.getElementById('paneRequests').classList.add('active');
+      
+      // Update filter based on tab
+      if (tabName === 'pendingTab') this.activeAdminFilter = 'Pending';
+      else if (tabName === 'needsStartTab') this.activeAdminFilter = 'Needs to Start';
+      else if (tabName === 'processingTab') this.activeAdminFilter = 'Processing';
+      else if (tabName === 'finishedTab') this.activeAdminFilter = 'Finished';
+      else if (tabName === 'rejectedTab') this.activeAdminFilter = 'Rejected';
+      else this.activeAdminFilter = 'all';
+
+      if (this.adminStatusFilter) {
+        this.adminStatusFilter.value = this.activeAdminFilter;
+      }
       this.renderAdminRequests();
     }
 
-    if (pushHistory && tabName !== 'requestsTab') {
+    if (pushHistory) {
       history.pushState({ view: 'admin', tab: tabName }, '', '#' + tabName);
     }
   }
@@ -1010,9 +1178,15 @@ class AariApp {
   renderAdminRequests() {
     let list = [...this.requests];
 
-    // Status filter
-    if (this.activeAdminStatusFilter !== 'all') {
-      list = list.filter(r => r.status === this.activeAdminStatusFilter);
+    // Filter by stage/status
+    if (this.activeAdminFilter !== 'all') {
+      if (this.activeAdminFilter === 'Pending') {
+        list = list.filter(r => r.status === 'Pending');
+      } else if (this.activeAdminFilter === 'Rejected') {
+        list = list.filter(r => r.status === 'Rejected');
+      } else {
+        list = list.filter(r => r.constructionStage === this.activeAdminFilter);
+      }
     }
 
     // Search query
@@ -1020,6 +1194,7 @@ class AariApp {
       list = list.filter(r => 
         (r.clientName && r.clientName.toLowerCase().includes(this.adminSearchQuery)) ||
         (r.clientPhone && r.clientPhone.toLowerCase().includes(this.adminSearchQuery)) ||
+        (r.assignedFlat && r.assignedFlat.toLowerCase().includes(this.adminSearchQuery)) ||
         (r.category && r.category.toLowerCase().includes(this.adminSearchQuery)) ||
         (r.id && r.id.toLowerCase().includes(this.adminSearchQuery))
       );
@@ -1030,7 +1205,7 @@ class AariApp {
         <div style="background:var(--bg-surface); padding:3rem; border-radius:var(--radius-lg); text-align:center; border:1px solid var(--border-card);">
           <div style="font-size:2.5rem; margin-bottom:0.75rem;">🔍</div>
           <h3 style="color:#fff; font-size:1.25rem;">No Requests Found</h3>
-          <p style="color:var(--text-muted);">No records match your selected filter (${this.activeAdminStatusFilter}).</p>
+          <p style="color:var(--text-muted);">No records match your selected stage (${this.activeAdminFilter}).</p>
         </div>
       `;
       return;
@@ -1039,15 +1214,30 @@ class AariApp {
     this.adminRequestsTable.innerHTML = list.map(req => {
       const isPending = req.status === 'Pending';
       const isApproved = req.status === 'Approved';
-      const isCancelled = req.status === 'Cancelled';
+      const isRejected = req.status === 'Rejected';
+
+      const stage = req.constructionStage || (isPending ? 'Pending' : (isRejected ? 'Rejected' : 'Needs to Start'));
+      let stageClass = 'needs_start';
+      let stageLabel = 'Needs to Start';
+      if (stage === 'Processing') { stageClass = 'processing'; stageLabel = 'Processing / In Progress'; }
+      else if (stage === 'Finished') { stageClass = 'finished'; stageLabel = 'Finished / Completed'; }
+      else if (stage === 'Pending') { stageClass = 'pending'; stageLabel = 'Pending Verification'; }
+      else if (stage === 'Rejected') { stageClass = 'rejected'; stageLabel = 'Rejected / Cancelled'; }
+
+      const pct = req.progressPercent || (stage === 'Finished' ? 100 : (stage === 'Processing' ? 60 : 0));
 
       return `
-        <div class="admin-req-card ${req.status.toLowerCase()}">
+        <div class="admin-req-card ${isPending ? 'pending' : (isApproved ? 'approved' : 'cancelled')}">
           <div class="admin-req-content">
-            <div class="admin-req-header">
+            <div class="admin-req-header" style="flex-wrap:wrap;">
               <span class="req-id-pill">${req.id}</span>
               <span class="client-name-title">${this.escapeHtml(req.clientName)}</span>
-              <span class="status-badge ${req.status.toLowerCase()}">${req.status}</span>
+              <span class="status-badge ${isPending ? 'pending' : (isApproved ? 'approved' : 'rejected')}">
+                ${req.status}
+              </span>
+              <span class="status-badge ${stageClass}">
+                ${stageLabel}
+              </span>
             </div>
 
             <div class="admin-req-grid">
@@ -1064,11 +1254,11 @@ class AariApp {
                 <span style="color:var(--gold-400);">${req.budgetText}</span>
               </div>
               <div class="admin-req-grid-item">
-                <span>Approx Area</span>
+                <span>Approx Built-up</span>
                 <span>~${req.approxSqft ? req.approxSqft.toLocaleString() : 'N/A'} sq.ft</span>
               </div>
               <div class="admin-req-grid-item">
-                <span>Location</span>
+                <span>City Location</span>
                 <span>${this.escapeHtml(req.city || 'Tamil Nadu')}</span>
               </div>
               <div class="admin-req-grid-item">
@@ -1077,15 +1267,30 @@ class AariApp {
               </div>
             </div>
 
-            ${req.notes ? `
-              <div style="font-size:0.83rem; color:var(--text-secondary); margin-bottom:0.4rem;">
-                <strong>Client Notes:</strong> "${this.escapeHtml(req.notes)}"
+            ${req.assignedFlat ? `
+              <div style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); padding:0.45rem 0.75rem; border-radius:var(--radius-sm); font-size:0.85rem; color:#6ee7b7; display:inline-block; margin-bottom:0.5rem;">
+                🏢 <strong>Allotted Unit / Flat:</strong> ${this.escapeHtml(req.assignedFlat)}
               </div>
             ` : ''}
 
-            ${isApproved && req.assignedFlat ? `
-              <div style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); padding:0.45rem 0.75rem; border-radius:var(--radius-sm); font-size:0.85rem; color:#6ee7b7; display:inline-block; margin-top:0.35rem;">
-                🏢 <strong>Allotted Unit:</strong> ${this.escapeHtml(req.assignedFlat)}
+            ${isApproved ? `
+              <!-- Construction Lifecycle Progress Bar -->
+              <div class="building-stage-bar">
+                <div class="stage-bar-header">
+                  <span class="stage-bar-title">
+                    <span>${stage === 'Finished' ? '🏆' : (stage === 'Processing' ? '⚙️' : '🏗️')}</span>
+                    <span>Building Stage: <strong>${stageLabel}</strong></span>
+                  </span>
+                  <span class="stage-bar-pct">${pct}% Complete</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill ${stageClass}" style="width: ${pct}%;"></div>
+                </div>
+                ${req.progressStageNotes ? `
+                  <div class="stage-notes-snippet">
+                    📍 <strong>Site Progress Note:</strong> ${this.escapeHtml(req.progressStageNotes)}
+                  </div>
+                ` : ''}
               </div>
             ` : ''}
 
@@ -1094,6 +1299,12 @@ class AariApp {
                 <span class="manual-call-notice">
                   ⚠️ Action Required: Call and verify payment manual
                 </span>
+              </div>
+            ` : ''}
+
+            ${req.adminNotes ? `
+              <div style="font-size:0.82rem; color:var(--text-muted); margin-top:0.4rem;">
+                <strong>Admin Remarks:</strong> ${this.escapeHtml(req.adminNotes)}
               </div>
             ` : ''}
           </div>
@@ -1110,14 +1321,23 @@ class AariApp {
               <button class="btn btn-success btn-approve-action" data-req-id="${req.id}" style="font-size:0.82rem;">
                 ✅ Approve & Allot
               </button>
-              <button class="btn btn-danger btn-cancel-action" data-req-id="${req.id}" style="font-size:0.82rem;">
-                ❌ Cancel
+              <button class="btn btn-danger btn-open-reject-action" data-req-id="${req.id}" style="font-size:0.82rem;">
+                ❌ Reject Request
               </button>
             ` : ''}
 
             ${isApproved ? `
+              <button class="btn btn-primary btn-update-stage-action" data-req-id="${req.id}" style="font-size:0.82rem;">
+                ⚙️ Update Stage & %
+              </button>
               <button class="btn btn-outline btn-edit-allotment" data-req-id="${req.id}" style="font-size:0.82rem;">
                 ✏️ Edit Flat No
+              </button>
+            ` : ''}
+
+            ${isRejected ? `
+              <button class="btn btn-outline btn-reopen-action" data-req-id="${req.id}" style="font-size:0.82rem;">
+                🔄 Re-Open Inquiry
               </button>
             ` : ''}
           </div>
@@ -1133,18 +1353,17 @@ class AariApp {
       });
     });
 
-    document.querySelectorAll('.btn-cancel-action').forEach(btn => {
+    document.querySelectorAll('.btn-open-reject-action').forEach(btn => {
       btn.addEventListener('click', () => {
         const reqId = btn.getAttribute('data-req-id');
-        if (confirm(`Are you sure you want to cancel request ${reqId}?`)) {
-          const req = this.requests.find(r => r.id === reqId);
-          if (req) {
-            req.status = 'Cancelled';
-            req.adminNotes = 'Declined by admin during manual verification call.';
-            saveRequests(this.requests);
-            this.renderAdminDashboard();
-          }
-        }
+        this.openRejectModal(reqId);
+      });
+    });
+
+    document.querySelectorAll('.btn-update-stage-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reqId = btn.getAttribute('data-req-id');
+        this.openProgressModal(reqId);
       });
     });
 
@@ -1154,9 +1373,24 @@ class AariApp {
         this.openApprovalModal(reqId);
       });
     });
+
+    document.querySelectorAll('.btn-reopen-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reqId = btn.getAttribute('data-req-id');
+        const req = this.requests.find(r => r.id === reqId);
+        if (req) {
+          req.status = 'Pending';
+          req.constructionStage = 'Pending';
+          req.adminNotes = 'Re-opened inquiry by Admin for manual verification.';
+          saveRequests(this.requests);
+          this.renderAdminDashboard();
+        }
+      });
+    });
   }
 
   renderAdminApprovedGrid() {
+    if (!this.adminApprovedGrid) return;
     const approved = this.requests.filter(r => r.status === 'Approved');
 
     if (approved.length === 0) {
@@ -1171,7 +1405,7 @@ class AariApp {
     this.adminApprovedGrid.innerHTML = approved.map(item => `
       <div style="background:var(--bg-surface); border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-lg); padding:1.5rem; display:flex; flex-direction:column; gap:0.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:0.75rem; color:var(--emerald-500); font-weight:800; text-transform:uppercase;">APPROVED & ALLOTTED</span>
+          <span style="font-size:0.75rem; color:var(--emerald-500); font-weight:800; text-transform:uppercase;">${item.constructionStage || 'ACTIVE'}</span>
           <span class="req-id-pill">${item.id}</span>
         </div>
         <h3 style="color:#fff; font-size:1.3rem; margin:0.25rem 0;">${this.escapeHtml(item.assignedFlat || 'Flat Allotted')}</h3>
@@ -1217,6 +1451,9 @@ class AariApp {
       createdAt: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
       status: "Approved",
       assignedFlat: flatNo,
+      constructionStage: "Needs to Start",
+      progressPercent: 10,
+      progressStageNotes: "Allotted directly by Admin. Architectural planning & foundation excavation underway.",
       adminNotes: "Added directly by Admin Aarikrishnan. Payment verified."
     };
 
@@ -1225,7 +1462,7 @@ class AariApp {
 
     alert(`Customer ${name} registered successfully with unit "${flatNo}"!`);
     this.adminAddCustomerForm.reset();
-    this.switchAdminTab('approvedTab');
+    this.switchAdminTab('needsStartTab');
   }
 
   /* ---------------------------------------------------------------------
@@ -1235,10 +1472,13 @@ class AariApp {
     let linksHtml = '';
     if (this.currentUser && this.currentUser.role === 'admin') {
       linksHtml = `
-        <button class="nav-tab active" data-admin-tab="requestsTab">Client Requests (${this.requests.filter(r => r.status==='Pending').length})</button>
-        <button class="nav-tab" data-admin-tab="approvedTab">Approved Units</button>
+        <button class="nav-tab active" data-admin-tab="allTab">All Inquiries (${this.requests.length})</button>
+        <button class="nav-tab" data-admin-tab="pendingTab">⏳ Pending (${this.requests.filter(r=>r.status==='Pending').length})</button>
+        <button class="nav-tab" data-admin-tab="needsStartTab">🏗️ Needs to Start (${this.requests.filter(r=>r.constructionStage==='Needs to Start').length})</button>
+        <button class="nav-tab" data-admin-tab="processingTab">⚙️ Processing (${this.requests.filter(r=>r.constructionStage==='Processing').length})</button>
+        <button class="nav-tab" data-admin-tab="finishedTab">🏆 Finished (${this.requests.filter(r=>r.constructionStage==='Finished').length})</button>
+        <button class="nav-tab" data-admin-tab="rejectedTab">❌ Rejected (${this.requests.filter(r=>r.status==='Rejected').length})</button>
         <button class="nav-tab" data-admin-tab="addCustomerTab">+ Add Customer</button>
-        <button class="btn btn-outline w-full mt-sm btn-drawer-back-showcase">← Back to Showcase</button>
       `;
     } else if (this.currentUser) {
       linksHtml = `
@@ -1259,7 +1499,6 @@ class AariApp {
 
     this.mobileDrawerContent.innerHTML = linksHtml;
 
-    // Attach listeners in drawer
     this.mobileDrawerContent.querySelectorAll('.nav-tab').forEach(btn => {
       btn.addEventListener('click', () => {
         this.mobileDrawer.classList.remove('open');

@@ -44,8 +44,12 @@
 
       <!-- Desktop Nav for Admin Portal -->
       <nav class="desktop-nav hidden" id="adminNav">
-        <button class="nav-tab active" data-admin-tab="requestsTab">Client Requests <span class="badge-count badge-warning" id="pendingRequestCount">0</span></button>
-        <button class="nav-tab" data-admin-tab="approvedTab">Approved Units</button>
+        <button class="nav-tab active" data-admin-tab="allTab">All Inquiries (<span id="adminAllCount">0</span>)</button>
+        <button class="nav-tab" data-admin-tab="pendingTab">⏳ Pending (<span id="adminPendingNavCount">0</span>)</button>
+        <button class="nav-tab" data-admin-tab="needsStartTab">🏗️ Needs to Start (<span id="adminNeedsStartNavCount">0</span>)</button>
+        <button class="nav-tab" data-admin-tab="processingTab">⚙️ Processing (<span id="adminProcessingNavCount">0</span>)</button>
+        <button class="nav-tab" data-admin-tab="finishedTab">🏆 Finished (<span id="adminFinishedNavCount">0</span>)</button>
+        <button class="nav-tab" data-admin-tab="rejectedTab">❌ Rejected (<span id="adminRejectedNavCount">0</span>)</button>
         <button class="nav-tab" data-admin-tab="addCustomerTab">+ Add Customer (Flat No)</button>
       </nav>
 
@@ -424,19 +428,13 @@
          ================================================================ -->
     <section id="viewAdminDashboard" class="view-section">
       
-      <!-- Admin Top Stats Ribbon -->
+      <!-- Admin Top Stats Ribbon (Dedicated Management Console - No landing page) -->
       <div class="admin-header-strip">
         <div>
-          <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.6rem; flex-wrap:wrap;">
-            <button class="btn-step-back" id="btnBackFromAdmin" type="button">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-              <span>Back to Showcase</span>
-            </button>
-            <div class="admin-badge" style="margin-bottom:0;">Admin Operations Console</div>
-          </div>
-          <h1 class="admin-title">Client Inquiries & Verification Pipeline</h1>
+          <div class="admin-badge" style="margin-bottom:0.4rem;">Admin Operations Console • Aari Construction</div>
+          <h1 class="admin-title">Client Inquiries & Building Construction Pipeline</h1>
           <p class="admin-desc">
-            Review incoming quotations from prospective clients. <strong>Call and verify payment manually</strong> before granting approval or assigning flat/unit numbers.
+            Manage incoming requests from normal clients: verify inquiries, approve/reject, and track building lifecycle stages (Needs to Start, Processing, Finished).
           </p>
         </div>
         <div class="admin-actions-bar">
@@ -444,8 +442,8 @@
         </div>
       </div>
 
-      <!-- Admin KPI Counters -->
-      <div class="admin-metrics-grid">
+      <!-- Admin KPI Counters (All 6 Stages) -->
+      <div class="admin-metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
         <div class="metric-card">
           <div class="metric-icon">📥</div>
           <div class="metric-data">
@@ -457,21 +455,35 @@
           <div class="metric-icon">⏳</div>
           <div class="metric-data">
             <span class="metric-val" id="metricPending">0</span>
-            <span class="metric-name">Pending Verification</span>
+            <span class="metric-name">Pending Call</span>
+          </div>
+        </div>
+        <div class="metric-card" style="border-left: 4px solid #3b82f6;">
+          <div class="metric-icon">🏗️</div>
+          <div class="metric-data">
+            <span class="metric-val" id="metricNeedsStart" style="color:#60a5fa;">0</span>
+            <span class="metric-name">Needs to Start</span>
+          </div>
+        </div>
+        <div class="metric-card" style="border-left: 4px solid #8b5cf6;">
+          <div class="metric-icon">⚙️</div>
+          <div class="metric-data">
+            <span class="metric-val" id="metricProcessing" style="color:#c084fc;">0</span>
+            <span class="metric-name">Processing</span>
           </div>
         </div>
         <div class="metric-card success">
-          <div class="metric-icon">✅</div>
+          <div class="metric-icon">🏆</div>
           <div class="metric-data">
-            <span class="metric-val" id="metricApproved">0</span>
-            <span class="metric-name">Approved Units</span>
+            <span class="metric-val" id="metricFinished">0</span>
+            <span class="metric-name">Finished Units</span>
           </div>
         </div>
         <div class="metric-card danger">
           <div class="metric-icon">❌</div>
           <div class="metric-data">
-            <span class="metric-val" id="metricCancelled">0</span>
-            <span class="metric-name">Cancelled</span>
+            <span class="metric-val" id="metricRejected">0</span>
+            <span class="metric-name">Rejected</span>
           </div>
         </div>
       </div>
@@ -483,15 +495,17 @@
         <div class="pipeline-controls">
           <div class="search-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="adminSearchInput" class="form-input" placeholder="Search by client name, phone, or category...">
+            <input type="text" id="adminSearchInput" class="form-input" placeholder="Search by client name, phone, flat no, or category...">
           </div>
           <div class="filter-group">
-            <label class="filter-label">Status Filter:</label>
+            <label class="filter-label">Filter Stage:</label>
             <select id="adminStatusFilter" class="form-select">
-              <option value="all">All Statuses</option>
-              <option value="Pending" selected>Pending Manual Verification (Call needed)</option>
-              <option value="Approved">Approved Only</option>
-              <option value="Cancelled">Cancelled Only</option>
+              <option value="all">All Inquiries & Buildings</option>
+              <option value="Pending">⏳ Pending Verification (Call Needed)</option>
+              <option value="Needs to Start">🏗️ Needs to Start (Foundation Prep)</option>
+              <option value="Processing">⚙️ Processing / In Progress</option>
+              <option value="Finished">🏆 Finished / Completed</option>
+              <option value="Rejected">❌ Rejected / Cancelled</option>
             </select>
           </div>
         </div>
@@ -897,6 +911,92 @@
             Confirm & Approve Registration
           </button>
           <button type="button" class="btn btn-outline" id="btnCancelApprovalModal">Back</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+
+  <!-- E. ADMIN BUILDING PROGRESS UPDATE MODAL (Needs to Start, Processing, Finished) -->
+  <div class="modal-backdrop" id="adminProgressModal">
+    <div class="modal-dialog">
+      <button class="modal-close" id="btnCloseProgressModal" aria-label="Close modal">&times;</button>
+      
+      <div class="modal-header">
+        <h2 class="modal-title">Update Building Construction Stage</h2>
+        <p class="modal-subtitle">Track project progress: Needs to Start, Processing, or Finished</p>
+      </div>
+
+      <form id="adminProgressForm" class="styled-form">
+        <input type="hidden" id="progressReqId">
+        
+        <div class="approval-client-preview" id="progressClientPreview">
+          <!-- Injected via JavaScript -->
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="selectConstructionStage">Construction Lifecycle Stage *</label>
+          <select id="selectConstructionStage" class="form-select" required>
+            <option value="Needs to Start">🏗️ Needs to Start (Planning, Soil Test & Foundation Excavation)</option>
+            <option value="Processing">⚙️ Processing / In Progress (Structure, Masonry, Plaster & Interiors)</option>
+            <option value="Finished">🏆 Finished / Completed (Handover Ready, Key Presented)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+            <label class="form-label" for="rangeProgressPercent" style="margin-bottom:0;">Work Completion Percentage: <strong id="progressPercentDisplay" style="color:var(--gold-400);">65%</strong></label>
+          </div>
+          <input type="range" id="rangeProgressPercent" min="0" max="100" step="5" value="65" class="budget-slider" style="margin-bottom:0.5rem;">
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-dim);">
+            <span>0% (Not Started)</span>
+            <span>50% (Structure Up)</span>
+            <span>100% (Finished)</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="inputStageNotes">Milestone & Site Progress Notes</label>
+          <textarea id="inputStageNotes" class="form-textarea" rows="2" placeholder="e.g. Ground floor slab completed. Brickwork & concealed piping ongoing." required></textarea>
+        </div>
+
+        <div class="form-actions mt-md">
+          <button type="submit" class="btn btn-primary btn-lg">
+            Save Building Progress Update
+          </button>
+          <button type="button" class="btn btn-outline" id="btnCancelProgressModal">Cancel</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+
+  <!-- F. ADMIN REJECT INQUIRY MODAL -->
+  <div class="modal-backdrop" id="adminRejectModal">
+    <div class="modal-dialog" style="max-width:480px;">
+      <button class="modal-close" id="btnCloseRejectModal" aria-label="Close modal">&times;</button>
+      
+      <div class="modal-header">
+        <h2 class="modal-title" style="color:var(--rose-500);">Reject Client Inquiry</h2>
+        <p class="modal-subtitle">Provide reason for cancellation or rejection</p>
+      </div>
+
+      <form id="adminRejectForm" class="styled-form">
+        <input type="hidden" id="rejectReqId">
+        <div id="rejectClientPreview" style="margin-bottom:1rem; font-size:0.9rem; color:#fff;"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="rejectReason">Rejection / Cancellation Reason *</label>
+          <textarea id="rejectReason" class="form-textarea" rows="3" placeholder="e.g. Client budget mismatch / unreachable on phone / cancelled by customer." required></textarea>
+        </div>
+
+        <div class="form-actions mt-md">
+          <button type="submit" class="btn btn-danger btn-lg">
+            Confirm Rejection
+          </button>
+          <button type="button" class="btn btn-outline" id="btnCancelRejectModal">Back</button>
         </div>
       </form>
 
