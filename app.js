@@ -1,1069 +1,888 @@
 /**
- * AARI CONSTRUCTION - Main Application Engine
- * Handles State, Dynamic DOM Rendering, Role Switching,
- * Customization Workflows, and Photo Upload Simulation.
+ * AARI CONSTRUCTION — Application Controller
+ * Login-gated, role-based SPA with admin customer management
  */
+import { APP_CONFIG, INITIAL_DATA } from './data.js';
 
-import { INITIAL_DATA } from './data.js';
-
-class AariConstructionApp {
+class App {
   constructor() {
-    // Clone initial data or load from localStorage for persistent demo interactions
-    this.data = this.loadState();
-    
-    // Application runtime state
-    this.state = {
-      currentRole: 'consultant', // 'consultant' or 'customer'
-      currentCustomerId: 'gv-a-102', // Default: Priya Sharma (Flat 102)
-      selectedProjectId: 'proj-1', // Green Valley Apartments
-      selectedUnitId: 'gv-a-102',
-      tierFilter: 'all',
-      activeView: 'consultantDashboard',
-      activeUnitDetailTab: 'timeline'
-    };
-
-    this.init();
+    this.data = this._load();
+    this.role = null;        // 'admin' | 'customer'
+    this.customerUnit = null; // the unit object when customer logs in
+    this.selectedProject = 'proj-1';
+    this.selectedUnit = null;
+    this.activeTab = 'timeline';
+    this.filter = 'all';
+    this._bind();
   }
 
-  loadState() {
-    const saved = localStorage.getItem('aari_construction_data');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse cached state, falling back to initial', e);
-      }
-    }
+  /* =================================================================
+     PERSISTENCE
+     ================================================================= */
+  _load() {
+    try {
+      const s = localStorage.getItem('aari_data');
+      if (s) return JSON.parse(s);
+    } catch (_) {}
     return JSON.parse(JSON.stringify(INITIAL_DATA));
   }
 
-  saveState() {
-    localStorage.setItem('aari_construction_data', JSON.stringify(this.data));
+  _save() {
+    localStorage.setItem('aari_data', JSON.stringify(this.data));
   }
 
-  init() {
-    this.bindEvents();
-    this.renderAll();
-  }
+  /* =================================================================
+     HELPERS
+     ================================================================= */
+  _el(id) { return document.getElementById(id); }
 
-  /* =========================================================================
-     EVENT BINDING & ROUTING
-     ========================================================================= */
-  bindEvents() {
-    // Top Bar Role Switchers
-    document.getElementById('roleBtnConsultant')?.addEventListener('click', () => {
-      this.switchRole('consultant');
-    });
-
-    document.getElementById('roleBtnCustomerPriya')?.addEventListener('click', () => {
-      this.switchRole('customer', 'gv-a-102'); // Priya
-    });
-
-    document.getElementById('roleBtnCustomerVikram')?.addEventListener('click', () => {
-      this.switchRole('customer', 'gv-a-101'); // Vikram
-    });
-
-    // HLD Architecture Modal
-    document.getElementById('btnOpenHldModal')?.addEventListener('click', () => {
-      this.openModal('hldModal');
-    });
-
-    document.getElementById('btnCloseHldModal')?.addEventListener('click', () => {
-      this.closeModal('hldModal');
-    });
-
-    // Close modal on click outside
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-          overlay.classList.remove('active');
-        }
-      });
-    });
-
-    // Navigation links
-    document.querySelectorAll('.nav-link-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const targetView = e.currentTarget.getAttribute('data-view');
-        if (targetView) {
-          this.switchView(targetView);
-        }
-      });
-    });
-
-    // Quick Button to Inspect Green Valley from Dashboard
-    document.getElementById('btnQuickSelectGreenValley')?.addEventListener('click', () => {
-      this.state.selectedProjectId = 'proj-1';
-      this.state.selectedUnitId = 'gv-a-102';
-      this.switchView('consultantUnits');
-    });
-
-    // Unit Matrix Tier Filters
-    document.getElementById('tierFilterPills')?.addEventListener('click', (e) => {
-      const btn = e.target.closest('.filter-pill');
-      if (!btn) return;
-      document.querySelectorAll('#tierFilterPills .filter-pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      this.state.tierFilter = btn.getAttribute('data-filter');
-      this.renderUnitsGrid();
-    });
-
-    // Upload Site Photo Modal triggers
-    document.getElementById('btnUploadNewPhotoPrompt')?.addEventListener('click', () => {
-      this.openModal('uploadModal');
-    });
-
-    document.getElementById('btnCloseUploadModal')?.addEventListener('click', () => {
-      this.closeModal('uploadModal');
-    });
-
-    // Site Photo Upload Form Submit
-    document.getElementById('sitePhotoUploadForm')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.handleSitePhotoUpload();
-    });
-
-    // Customer Customization Form Submit
-    document.getElementById('customizationRequestForm')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.handleCustomerCustomizationSubmit();
-    });
-  }
-
-  /* =========================================================================
-     ROLE & VIEW SWITCHING
-     ========================================================================= */
-  switchRole(role, customerId = null) {
-    this.state.currentRole = role;
-    if (customerId) {
-      this.state.currentCustomerId = customerId;
-    }
-
-    // Update Top Role Buttons
-    document.getElementById('roleBtnConsultant')?.classList.toggle('active', role === 'consultant');
-    document.getElementById('roleBtnCustomerPriya')?.classList.toggle('active', role === 'customer' && this.state.currentCustomerId === 'gv-a-102');
-    document.getElementById('roleBtnCustomerVikram')?.classList.toggle('active', role === 'customer' && this.state.currentCustomerId === 'gv-a-101');
-
-    // Update Navbars
-    const consultantNav = document.getElementById('consultantNav');
-    const customerNav = document.getElementById('customerNav');
-    const userAvatar = document.getElementById('userAvatar');
-    const userNameLabel = document.getElementById('userNameLabel');
-    const userRoleSubLabel = document.getElementById('userRoleSubLabel');
-
-    if (role === 'consultant') {
-      if (consultantNav) consultantNav.style.display = 'flex';
-      if (customerNav) customerNav.style.display = 'none';
-      if (userAvatar) {
-        userAvatar.className = 'avatar consultant';
-        userAvatar.textContent = 'AC';
-      }
-      if (userNameLabel) userNameLabel.textContent = 'Aari Management';
-      if (userRoleSubLabel) userRoleSubLabel.textContent = 'Lead Construction PM';
-      this.switchView('consultantDashboard');
-      this.showToast('Switched to Consultant / Admin Mode', 'info');
-    } else {
-      if (consultantNav) consultantNav.style.display = 'none';
-      if (customerNav) customerNav.style.display = 'flex';
-      
-      const currentUnit = this.getCurrentCustomerUnit();
-      if (userAvatar) {
-        userAvatar.className = 'avatar';
-        userAvatar.textContent = currentUnit ? currentUnit.customer.charAt(0) : 'C';
-      }
-      if (userNameLabel) userNameLabel.textContent = currentUnit ? currentUnit.customer : 'Valued Customer';
-      if (userRoleSubLabel) userRoleSubLabel.textContent = `${currentUnit?.number || 'Unit'} (${currentUnit?.package || 'Package'})`;
-      this.switchView('customerHome');
-      this.showToast(`Switched to ${currentUnit?.customer || 'Customer'} Portal`, 'success');
-    }
-
-    this.renderAll();
-  }
-
-  switchView(viewId) {
-    this.state.activeView = viewId;
-
-    // Toggle active classes on view containers
-    document.querySelectorAll('.view-container').forEach(el => {
-      el.classList.remove('active');
-    });
-
-    const target = document.getElementById(this.getViewElementId(viewId));
-    if (target) {
-      target.classList.add('active');
-    }
-
-    // Toggle active on navbar buttons
-    document.querySelectorAll('.nav-link-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-view') === viewId);
-    });
-
-    // Trigger view-specific re-renders
-    if (viewId === 'consultantUnits') {
-      this.renderUnitsGrid();
-      this.renderUnitDetailPanel();
-    } else if (viewId === 'consultantCustomizations') {
-      this.renderCustomizationsQueue();
-    } else if (viewId.startsWith('customer')) {
-      this.renderCustomerViews();
-    }
-  }
-
-  getViewElementId(viewId) {
-    const map = {
-      consultantDashboard: 'viewConsultantDashboard',
-      consultantProjects: 'viewConsultantProjects',
-      consultantUnits: 'viewConsultantUnits',
-      consultantCustomizations: 'viewConsultantCustomizations',
-      customerHome: 'viewCustomerHome',
-      customerPhotos: 'viewCustomerPhotos',
-      customerCustomization: 'viewCustomerCustomization',
-      customerDelivery: 'viewCustomerDelivery'
-    };
-    return map[viewId] || 'viewConsultantDashboard';
-  }
-
-  /* =========================================================================
-     RENDERING PIPELINES
-     ========================================================================= */
-  renderAll() {
-    this.renderDashboardStats();
-    this.renderProjectsList();
-    this.renderUnitsGrid();
-    this.renderUnitDetailPanel();
-    this.renderCustomizationsQueue();
-    this.renderCustomerViews();
-    this.renderTeamAllocation();
-  }
-
-  renderDashboardStats() {
-    const metrics = this.data.metrics;
-    if (document.getElementById('statProjects')) document.getElementById('statProjects').textContent = metrics.totalProjects;
-    if (document.getElementById('statUnits')) document.getElementById('statUnits').textContent = metrics.totalUnits;
-    if (document.getElementById('statActive')) document.getElementById('statActive').textContent = metrics.activeConstruction;
-    if (document.getElementById('statReady')) document.getElementById('statReady').textContent = metrics.readyForHandover;
-
-    // Pending customizations badge
-    let pendingCount = 0;
+  _allUnits() {
+    const out = [];
     this.data.projects.forEach(p => {
-      p.blocks?.forEach(b => {
-        b.units?.forEach(u => {
-          u.customizations?.forEach(c => {
-            if (c.status === 'Pending') pendingCount++;
-          });
+      (p.blocks || []).forEach(b => {
+        (b.units || []).forEach(u => {
+          out.push({ ...u, projectName: p.name, projectId: p.id, blockName: b.name });
         });
       });
     });
-
-    const badge = document.getElementById('pendingBadgeCount');
-    if (badge) {
-      badge.textContent = pendingCount;
-      badge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
-    }
+    return out;
   }
 
-  renderProjectsList() {
-    const dashList = document.getElementById('dashboardProjectsList');
-    const fullList = document.getElementById('fullProjectsList');
-
-    const html = this.data.projects.map(p => `
-      <div class="project-card">
-        <div class="project-card-img" style="background-image: url('${p.image}');">
-          <span class="project-card-type">${p.type}</span>
-        </div>
-        <div class="project-card-body">
-          <h3 class="project-card-title">${p.name}</h3>
-          <p class="project-card-location">📍 ${p.location}</p>
-          <div class="progress-bar-container">
-            <div class="progress-bar-header">
-              <span>Overall Progress</span>
-              <strong style="color: var(--accent-amber-light);">${p.overallProgress}%</strong>
-            </div>
-            <div class="progress-track">
-              <div class="progress-fill" style="width: ${p.overallProgress}%;"></div>
-            </div>
-          </div>
-          <div class="project-meta-grid">
-            <div class="meta-item">
-              <div class="meta-label">Total Units</div>
-              <div class="meta-val">${p.totalUnits} Units</div>
-            </div>
-            <div class="meta-item">
-              <div class="meta-label">Target Handover</div>
-              <div class="meta-val">${p.expectedDelivery}</div>
-            </div>
-          </div>
-          <button class="btn-view-project" data-project-id="${p.id}">
-            Inspect Unit Matrix &rarr;
-          </button>
-        </div>
-      </div>
-    `).join('');
-
-    if (dashList) dashList.innerHTML = html;
-    if (fullList) fullList.innerHTML = html;
-
-    // Attach click events
-    document.querySelectorAll('.btn-view-project').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const pId = e.currentTarget.getAttribute('data-project-id');
-        this.state.selectedProjectId = pId;
-        this.switchView('consultantUnits');
-      });
-    });
+  _findUnit(id) {
+    return this._allUnits().find(u => u.id === id) || null;
   }
 
-  renderUnitsGrid() {
-    const project = this.data.projects.find(p => p.id === this.state.selectedProjectId) || this.data.projects[0];
-    const block = project.blocks ? project.blocks[0] : null;
-    if (!block) return;
-
-    const titleEl = document.getElementById('matrixProjectTitle');
-    if (titleEl) {
-      titleEl.innerHTML = `${project.name} &mdash; ${block.name}`;
-    }
-
-    let units = block.units || [];
-    if (this.state.tierFilter !== 'all') {
-      units = units.filter(u => u.package === this.state.tierFilter);
-    }
-
-    const container = document.getElementById('unitsGridContainer');
-    if (!container) return;
-
-    container.innerHTML = units.map(unit => {
-      const isSelected = unit.id === this.state.selectedUnitId;
-      const readyBadge = unit.isReadyForHandover 
-        ? `<span class="badge badge-ready">READY FOR HANDOVER</span>` 
-        : `<span class="badge ${unit.packageBadge}">${unit.package}</span>`;
-
-      return `
-        <div class="unit-card ${isSelected ? 'active-selected' : ''}" data-unit-id="${unit.id}">
-          <div class="unit-card-header">
-            <span class="unit-card-num">${unit.number}</span>
-            ${readyBadge}
-          </div>
-          <div class="unit-customer-name">Client: <strong>${unit.customer}</strong></div>
-          <div class="unit-card-stage">
-            <span style="color: var(--accent-amber);">●</span> Stage: ${unit.stage}
-          </div>
-          <div class="progress-bar-container" style="margin-bottom: 8px;">
-            <div class="progress-bar-header">
-              <span>Scope Completion</span>
-              <strong>${unit.progress}%</strong>
-            </div>
-            <div class="progress-track">
-              <div class="progress-fill" style="width: ${unit.progress}%; background: ${unit.progress === 100 ? 'var(--accent-emerald)' : ''};"></div>
-            </div>
-          </div>
-          <div class="unit-card-footer">
-            <span class="eta-label">Expected Handover:</span>
-            <span class="eta-value">${unit.expectedHandover}</span>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    // Attach card click
-    container.querySelectorAll('.unit-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        const uId = e.currentTarget.getAttribute('data-unit-id');
-        this.state.selectedUnitId = uId;
-        this.renderUnitsGrid();
-        this.renderUnitDetailPanel();
-      });
-    });
-  }
-
-  renderUnitDetailPanel() {
-    const panel = document.getElementById('unitDetailPanel');
-    if (!panel) return;
-
-    const project = this.data.projects.find(p => p.id === this.state.selectedProjectId) || this.data.projects[0];
-    const unit = project.blocks?.[0]?.units?.find(u => u.id === this.state.selectedUnitId);
-
-    if (!unit) {
-      panel.style.display = 'none';
-      return;
-    }
-
-    panel.style.display = 'block';
-
-    const handoverBtnText = unit.isReadyForHandover 
-      ? '✓ Handover Certificate Issued' 
-      : '📦 Mark Ready For Handover';
-
-    panel.innerHTML = `
-      <div class="unit-detail-hero">
-        <div class="unit-detail-left">
-          <h2>
-            ${unit.number} &mdash; ${unit.customer}
-            <span class="badge ${unit.packageBadge}">${unit.package}</span>
-            ${unit.isReadyForHandover ? '<span class="badge badge-ready">READY FOR DELIVERY</span>' : ''}
-          </h2>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
-            ${unit.description}
-          </p>
-        </div>
-        <div class="unit-detail-actions">
-          <button class="btn-action ${unit.isReadyForHandover ? '' : 'primary'}" id="btnToggleHandoverStatus">
-            ${handoverBtnText}
-          </button>
-          <button class="btn-action" id="btnSwitchToCustomerDirect" title="View customer portal for this unit">
-            👁️ Open as Customer
-          </button>
-        </div>
-      </div>
-
-      <!-- Navigation Tabs inside Unit Detail -->
-      <div class="tab-nav">
-        <button class="tab-btn ${this.state.activeUnitDetailTab === 'timeline' ? 'active' : ''}" data-tab="timeline">
-          📅 Construction Milestones & ETA
-        </button>
-        <button class="tab-btn ${this.state.activeUnitDetailTab === 'scope' ? 'active' : ''}" data-tab="scope">
-          📋 Scope & Custom Boundary
-        </button>
-        <button class="tab-btn ${this.state.activeUnitDetailTab === 'photos' ? 'active' : ''}" data-tab="photos">
-          📷 Site Verification Photos (${unit.photos ? unit.photos.length : 0})
-        </button>
-        <button class="tab-btn ${this.state.activeUnitDetailTab === 'customizations' ? 'active' : ''}" data-tab="customizations">
-          ✏️ Custom Requests (${unit.customizations ? unit.customizations.length : 0})
-        </button>
-      </div>
-
-      <!-- Tab Content Area -->
-      <div id="unitDetailTabContent">
-        ${this.getUnitDetailTabContentHtml(unit)}
-      </div>
-    `;
-
-    // Bind tab clicks
-    panel.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.state.activeUnitDetailTab = e.currentTarget.getAttribute('data-tab');
-        this.renderUnitDetailPanel();
-      });
-    });
-
-    // Bind Handover Toggle
-    document.getElementById('btnToggleHandoverStatus')?.addEventListener('click', () => {
-      unit.isReadyForHandover = !unit.isReadyForHandover;
-      if (unit.isReadyForHandover) {
-        unit.progress = 100;
-        unit.handoverStatus = "Ready for Delivery";
-        this.showToast(`${unit.number} marked Ready for Delivery! Handover notice sent.`, 'success');
-      } else {
-        unit.progress = 80;
-        unit.handoverStatus = "In Progress";
-        this.showToast(`${unit.number} status reverted to In Progress`, 'info');
-      }
-      this.saveState();
-      this.renderAll();
-    });
-
-    // Bind Direct Switch to Customer
-    document.getElementById('btnSwitchToCustomerDirect')?.addEventListener('click', () => {
-      this.switchRole('customer', unit.id);
-    });
-
-    // Bind Customization Actions inside unit
-    this.bindCustomizationTableEvents(panel);
-  }
-
-  getUnitDetailTabContentHtml(unit) {
-    if (this.state.activeUnitDetailTab === 'timeline') {
-      const stages = unit.stages && unit.stages.length > 0 ? unit.stages : [
-        { name: "Foundation & Substructure", status: "completed", date: "15 Jan 2026", note: "RCC Foundation cast" },
-        { name: "Superstructure Frame", status: "completed", date: "22 Mar 2026", note: "Pillar and beams certified" },
-        { name: "Brick Masonry & Plastering", status: "completed", date: "10 Jul 2026", note: "Double sand-face plaster" },
-        { name: "Electrical & Plumbing Rough-in", status: "in-progress", date: "In Progress", note: "Conduit piping laid" },
-        { name: "Painting & Cladding", status: "pending", date: "Target Nov 2026", note: "Pending MEP sign-off" },
-        { name: "Handover Inspection", status: "pending", date: "Target Dec 2026", note: "Key handover" }
-      ];
-
-      return `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <div>
-            <h3 style="font-size: 1rem; font-weight: 700;">Milestone Roadmap & Delivery Tracker</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted);">
-              Expected Handover: <strong style="color: var(--accent-amber-light);">${unit.expectedHandover}</strong>
-              &bull; Scope Completion: <strong>${unit.progress}%</strong>
-            </p>
-          </div>
-          <span class="badge ${unit.packageBadge}">${unit.package} Tier</span>
-        </div>
-        <div class="timeline-list">
-          ${stages.map((st, idx) => `
-            <div class="timeline-step ${st.status}">
-              <div class="timeline-marker">${st.status === 'completed' ? '✓' : (idx + 1)}</div>
-              <div class="timeline-content">
-                <div class="timeline-title-row">
-                  <span class="timeline-title">${st.name}</span>
-                  <span class="badge ${st.status === 'completed' ? 'badge-ready' : (st.status === 'in-progress' ? 'badge-pending' : '')}">${st.status.toUpperCase()}</span>
-                </div>
-                <div class="timeline-note">
-                  ${st.note || 'Milestone verified by site engineer'} &bull; <span style="color: var(--text-dim);">${st.date || ''}</span>
-                </div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      `;
-    }
-
-    if (this.state.activeUnitDetailTab === 'scope') {
-      const included = unit.scopeIncluded || ["Foundation & Columns", "Brickwork & Plaster"];
-      const excluded = unit.scopeExcluded || ["Interior Finishes"];
-
-      return `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-          <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 18px;">
-            <h3 style="font-size: 0.95rem; font-weight: 700; color: #6ee7b7; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-              <span>✓</span> Scope Included by Aari Construction (${unit.package})
-            </h3>
-            <ul style="list-style: none; font-size: 0.85rem; line-height: 1.8;">
-              ${included.map(i => `<li style="display: flex; align-items: center; gap: 8px;"><span>✅</span> ${i}</li>`).join('')}
-            </ul>
-          </div>
-
-          <div style="background: rgba(244, 63, 94, 0.05); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: var(--radius-md); padding: 18px;">
-            <h3 style="font-size: 0.95rem; font-weight: 700; color: #fda4af; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-              <span>✗</span> Excluded & Handled by Customer
-            </h3>
-            <ul style="list-style: none; font-size: 0.85rem; line-height: 1.8;">
-              ${excluded.length > 0 ? excluded.map(e => `<li style="display: flex; align-items: center; gap: 8px;"><span>❌</span> ${e}</li>`).join('') : '<li style="color: var(--text-dim);">No exclusions &mdash; Full Turnkey Project!</li>'}
-            </ul>
-          </div>
-        </div>
-      `;
-    }
-
-    if (this.state.activeUnitDetailTab === 'photos') {
-      const photos = unit.photos || [];
-      return `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <div>
-            <h3 style="font-size: 1rem; font-weight: 700;">Field Engineer Verification Photos</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted);">Real-time site imagery accessible to client</p>
-          </div>
-          <button class="btn-action primary" id="btnUploadModalInline">
-            📷 Upload New Field Photo
-          </button>
-        </div>
-
-        ${photos.length === 0 ? '<p style="color: var(--text-muted); font-size: 0.85rem;">No site photos uploaded yet for this unit.</p>' : `
-          <div class="photo-gallery-grid">
-            ${photos.map(p => `
-              <div class="photo-card">
-                <img src="${p.url}" alt="${p.title}" class="photo-img">
-                <div class="photo-caption">
-                  <div class="photo-title">${p.title}</div>
-                  <div class="photo-meta">
-                    <span class="badge badge-semifinished">${p.stage}</span>
-                    <span>${p.timestamp}</span>
-                  </div>
-                  <div class="photo-notes">${p.notes}</div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `}
-      `;
-    }
-
-    if (this.state.activeUnitDetailTab === 'customizations') {
-      const cust = unit.customizations || [];
-      return `
-        <div class="section-header" style="margin-bottom: 12px;">
-          <div>
-            <h3 style="font-size: 1rem; font-weight: 700;">Unit Customization Log</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted);">Decoupled customer variations with isolated cost/schedule impacts</p>
-          </div>
-        </div>
-
-        ${cust.length === 0 ? '<p style="color: var(--text-muted); font-size: 0.85rem;">No customization requests submitted for this unit.</p>' : `
-          <table class="customization-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Category</th>
-                <th>Title / Description</th>
-                <th>Impact</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${cust.map(c => `
-                <tr>
-                  <td><strong>${c.id}</strong></td>
-                  <td><span class="badge badge-custom">${c.category}</span></td>
-                  <td>
-                    <strong>${c.title}</strong>
-                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">${c.description}</div>
-                  </td>
-                  <td>
-                    <div style="color: #6ee7b7; font-weight: 600;">${c.costImpact}</div>
-                    <div style="font-size: 0.72rem; color: var(--text-dim);">${c.timeImpact}</div>
-                  </td>
-                  <td>
-                    <span class="badge ${c.status === 'Approved' ? 'badge-ready' : (c.status === 'Pending' ? 'badge-pending' : '')}">${c.status}</span>
-                  </td>
-                  <td>
-                    ${c.status === 'Pending' ? `
-                      <button class="btn-approve" data-req-id="${c.id}" data-unit-id="${unit.id}">Approve</button>
-                      <button class="btn-reject" data-req-id="${c.id}" data-unit-id="${unit.id}">Reject</button>
-                    ` : '<span style="color: var(--text-dim); font-size: 0.75rem;">Processed</span>'}
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `}
-      `;
-    }
-
-    return '';
-  }
-
-  bindCustomizationTableEvents(container) {
-    container.querySelectorAll('.btn-approve').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const reqId = e.currentTarget.getAttribute('data-req-id');
-        const unitId = e.currentTarget.getAttribute('data-unit-id');
-        this.updateCustomizationStatus(unitId, reqId, 'Approved');
-      });
-    });
-
-    container.querySelectorAll('.btn-reject').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const reqId = e.currentTarget.getAttribute('data-req-id');
-        const unitId = e.currentTarget.getAttribute('data-unit-id');
-        this.updateCustomizationStatus(unitId, reqId, 'Rejected');
-      });
-    });
-
-    container.querySelector('#btnUploadModalInline')?.addEventListener('click', () => {
-      this.openModal('uploadModal');
-    });
-  }
-
-  updateCustomizationStatus(unitId, reqId, newStatus) {
-    let found = false;
-    this.data.projects.forEach(p => {
-      p.blocks?.forEach(b => {
-        b.units?.forEach(u => {
-          if (u.id === unitId) {
-            u.customizations?.forEach(c => {
-              if (c.id === reqId) {
-                c.status = newStatus;
-                found = true;
-              }
-            });
-          }
-        });
-      });
-    });
-
-    if (found) {
-      this.saveState();
-      this.showToast(`Request ${reqId} marked as ${newStatus}!`, newStatus === 'Approved' ? 'success' : 'info');
-      this.renderAll();
-    }
-  }
-
-  renderCustomizationsQueue() {
-    const tbody = document.getElementById('customizationsTableBody');
-    if (!tbody) return;
-
-    const allRequests = [];
-    this.data.projects.forEach(p => {
-      p.blocks?.forEach(b => {
-        b.units?.forEach(u => {
-          u.customizations?.forEach(c => {
-            allRequests.push({ ...c, unitNumber: u.number, customer: u.customer, unitId: u.id });
-          });
-        });
-      });
-    });
-
-    if (allRequests.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No customization requests found.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = allRequests.map(r => `
-      <tr>
-        <td><strong>${r.id}</strong></td>
-        <td>
-          <strong>${r.unitNumber}</strong>
-          <div style="font-size: 0.75rem; color: var(--text-dim);">${r.customer}</div>
-        </td>
-        <td><span class="badge badge-custom">${r.category}</span></td>
-        <td>
-          <div style="font-weight: 600;">${r.title}</div>
-          <div style="font-size: 0.78rem; color: var(--text-muted);">${r.description}</div>
-        </td>
-        <td style="color: #6ee7b7; font-weight: 600;">${r.costImpact}</td>
-        <td style="color: var(--text-dim); font-size: 0.75rem;">${r.timeImpact}</td>
-        <td>
-          <span class="badge ${r.status === 'Approved' ? 'badge-ready' : (r.status === 'Pending' ? 'badge-pending' : '')}">${r.status}</span>
-        </td>
-        <td>
-          ${r.status === 'Pending' ? `
-            <button class="btn-approve" data-req-id="${r.id}" data-unit-id="${r.unitId}">Approve</button>
-            <button class="btn-reject" data-req-id="${r.id}" data-unit-id="${r.unitId}">Reject</button>
-          ` : '<span style="color: var(--text-dim); font-size: 0.75rem;">Completed</span>'}
-        </td>
-      </tr>
-    `).join('');
-
-    this.bindCustomizationTableEvents(tbody);
-  }
-
-  /* =========================================================================
-     CUSTOMER PORTAL RENDERING
-     ========================================================================= */
-  getCurrentCustomerUnit() {
+  _unitRef(id) {
     for (const p of this.data.projects) {
       for (const b of (p.blocks || [])) {
         for (const u of (b.units || [])) {
-          if (u.id === this.state.currentCustomerId) {
-            return { ...u, projectName: p.name, blockName: b.name };
-          }
+          if (u.id === id) return u;
         }
       }
     }
-    // Fallback to Flat 102
-    return this.data.projects[0].blocks[0].units[1];
+    return null;
   }
 
-  renderCustomerViews() {
-    const unit = this.getCurrentCustomerUnit();
+  _progress(unit) {
+    if (!unit.stages || unit.stages.length === 0) return 0;
+    const completed = unit.stages.filter(s => s.status === 'completed').length;
+    const total = unit.stages.length;
+    return Math.round((completed / total) * 100);
+  }
+
+  _expectedDate(unit) {
+    if (!unit.stages || unit.stages.length === 0) return 'TBD';
+    const last = unit.stages[unit.stages.length - 1];
+    return last.date || 'TBD';
+  }
+
+  _pkgBadge(pkg) {
+    if (pkg === 'Bare-Bones') return 'badge-bare';
+    if (pkg === 'Semi-Finished') return 'badge-semi';
+    return 'badge-full';
+  }
+
+  _statusBadge(s) {
+    if (s === 'Approved') return 'badge-approved';
+    if (s === 'Rejected') return 'badge-rejected';
+    return 'badge-pending';
+  }
+
+  toast(msg, type = 'info') {
+    const c = this._el('toastContainer');
+    if (!c) return;
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = '.3s'; setTimeout(() => t.remove(), 300); }, 3000);
+  }
+
+  /* =================================================================
+     EVENT BINDING
+     ================================================================= */
+  _bind() {
+    // Login tabs
+    document.querySelectorAll('.login-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+        tab.classList.add('active');
+        const target = tab.dataset.loginTab;
+        this._el(target === 'admin' ? 'adminLoginForm' : 'customerLoginForm').classList.add('active');
+      });
+    });
+
+    // Admin login
+    this._el('adminLoginForm')?.addEventListener('submit', e => {
+      e.preventDefault();
+      const u = this._el('adminUser').value.trim();
+      const p = this._el('adminPass').value;
+      const err = this._el('adminLoginError');
+      if (u === APP_CONFIG.adminCredentials.username && p === APP_CONFIG.adminCredentials.password) {
+        err.style.display = 'none';
+        this._loginAsAdmin();
+      } else {
+        err.textContent = 'Invalid username or password.';
+        err.style.display = 'block';
+      }
+    });
+
+    // Customer login
+    this._el('customerLoginForm')?.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = this._el('custName').value.trim().toLowerCase();
+      const email = this._el('custEmail').value.trim().toLowerCase();
+      const err = this._el('customerLoginError');
+      const unit = this._allUnits().find(u => u.customer.toLowerCase() === name && u.email.toLowerCase() === email);
+      if (unit) {
+        err.style.display = 'none';
+        this._loginAsCustomer(unit);
+      } else {
+        err.textContent = 'No matching customer found. Check your name and email.';
+        err.style.display = 'block';
+      }
+    });
+
+    // Logout
+    this._el('btnLogout')?.addEventListener('click', () => this._logout());
+
+    // Hamburger
+    this._el('btnHamburger')?.addEventListener('click', () => {
+      const m = this._el('mobileNav');
+      m.classList.toggle('open');
+    });
+
+    // Nav buttons (desktop)
+    document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
+      btn.addEventListener('click', () => this._navigate(btn.dataset.view));
+    });
+
+    // Upload Photo modal
+    this._el('btnUploadPhoto')?.addEventListener('click', () => this._openUploadModal());
+    this._el('closeUploadModal')?.addEventListener('click', () => this._el('uploadModal').classList.remove('open'));
+    this._el('uploadModal')?.addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+
+    this._el('uploadPhotoForm')?.addEventListener('submit', e => {
+      e.preventDefault();
+      this._handlePhotoUpload();
+    });
+
+    // Add Customer form
+    this._el('addCustomerForm')?.addEventListener('submit', e => {
+      e.preventDefault();
+      this._handleAddCustomer();
+    });
+
+    // Customer request form
+    this._el('custRequestForm')?.addEventListener('submit', e => {
+      e.preventDefault();
+      this._handleCustRequest();
+    });
+
+    // Add Customer project dropdown change
+    this._el('acProject')?.addEventListener('change', () => this._populateBlockDropdown());
+  }
+
+  /* =================================================================
+     AUTH FLOW
+     ================================================================= */
+  _loginAsAdmin() {
+    this.role = 'admin';
+    this._el('loginPage').classList.add('hidden');
+    this._el('appShell').classList.add('active');
+    this._el('adminNav').classList.remove('hidden');
+    this._el('customerNav').classList.add('hidden');
+    this._el('headerAvatar').className = 'avatar-circle avatar-admin';
+    this._el('headerAvatar').textContent = 'A';
+    this._el('headerName').textContent = 'Admin';
+    this._el('headerRole').textContent = 'Consultant';
+    this._buildMobileNav('admin');
+    this._navigate('dashboard');
+    this.toast('Logged in as Admin', 'success');
+  }
+
+  _loginAsCustomer(unit) {
+    this.role = 'customer';
+    this.customerUnit = unit;
+    this._el('loginPage').classList.add('hidden');
+    this._el('appShell').classList.add('active');
+    this._el('adminNav').classList.add('hidden');
+    this._el('customerNav').classList.remove('hidden');
+    this._el('headerAvatar').className = 'avatar-circle avatar-customer';
+    this._el('headerAvatar').textContent = unit.customer.charAt(0);
+    this._el('headerName').textContent = unit.customer;
+    this._el('headerRole').textContent = `${unit.number} · ${unit.package}`;
+    this._buildMobileNav('customer');
+    this._navigate('myHome');
+    this.toast(`Welcome, ${unit.customer}!`, 'success');
+  }
+
+  _logout() {
+    this.role = null;
+    this.customerUnit = null;
+    this._el('loginPage').classList.remove('hidden');
+    this._el('appShell').classList.remove('active');
+    this._el('adminNav').classList.add('hidden');
+    this._el('customerNav').classList.add('hidden');
+    this._el('mobileNav').classList.remove('open');
+    // Clear form fields
+    this._el('adminUser').value = '';
+    this._el('adminPass').value = '';
+    this._el('custName').value = '';
+    this._el('custEmail').value = '';
+    this._el('adminLoginError').style.display = 'none';
+    this._el('customerLoginError').style.display = 'none';
+  }
+
+  _buildMobileNav(role) {
+    const nav = this._el('mobileNav');
+    const items = role === 'admin'
+      ? [['dashboard','Dashboard'],['projects','Projects'],['units','Unit Matrix'],['customizations','Requests'],['addCustomer','+ Add Customer']]
+      : [['myHome','My Home'],['myPhotos','Site Photos'],['myRequests','Request Changes'],['myDelivery','Delivery']];
+    nav.innerHTML = items.map(([v,l]) => `<button class="nav-btn" data-view="${v}">${l}</button>`).join('');
+    nav.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => {
+      this._navigate(b.dataset.view);
+      nav.classList.remove('open');
+    }));
+  }
+
+  /* =================================================================
+     NAVIGATION
+     ================================================================= */
+  _navigate(view) {
+    // Hide all views
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+    // Map view name to element id
+    const map = {
+      dashboard: 'viewDashboard', projects: 'viewProjects', units: 'viewUnits',
+      customizations: 'viewCustomizations', addCustomer: 'viewAddCustomer',
+      myHome: 'viewMyHome', myPhotos: 'viewMyPhotos', myRequests: 'viewMyRequests', myDelivery: 'viewMyDelivery'
+    };
+
+    const el = this._el(map[view]);
+    if (el) el.classList.add('active');
+
+    // Update active nav
+    const navContainer = this.role === 'admin' ? this._el('adminNav') : this._el('customerNav');
+    navContainer?.querySelectorAll('.nav-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === view);
+    });
+
+    // Render
+    this._render(view);
+  }
+
+  _render(view) {
+    switch (view) {
+      case 'dashboard': this._renderDashboard(); break;
+      case 'projects': this._renderProjects('allProjects'); break;
+      case 'units': this._renderUnits(); break;
+      case 'customizations': this._renderAllRequests(); break;
+      case 'addCustomer': this._renderAddCustomerForm(); break;
+      case 'myHome': this._renderCustomerHome(); break;
+      case 'myPhotos': this._renderCustomerPhotos(); break;
+      case 'myRequests': this._renderCustomerRequests(); break;
+      case 'myDelivery': this._renderCustomerDelivery(); break;
+    }
+  }
+
+  /* =================================================================
+     ADMIN: DASHBOARD
+     ================================================================= */
+  _renderDashboard() {
+    const all = this._allUnits();
+    const totalProjects = this.data.projects.length;
+    const totalUnits = all.length;
+    const inProgress = all.filter(u => u.stages?.some(s => s.status === 'in-progress')).length;
+    const completed = all.filter(u => this._progress(u) === 100).length;
+    const pendingReqs = all.reduce((n, u) => n + (u.customizations?.filter(c => c.status === 'Pending').length || 0), 0);
+
+    this._el('statsRow').innerHTML = `
+      <div class="stat-card" style="--stat-color:var(--accent)"><div class="stat-label">Projects</div><div class="stat-value">${totalProjects}</div><div class="stat-sub">Active developments</div></div>
+      <div class="stat-card" style="--stat-color:var(--cyan)"><div class="stat-label">Total Units</div><div class="stat-value">${totalUnits}</div><div class="stat-sub">Across all projects</div></div>
+      <div class="stat-card" style="--stat-color:var(--purple)"><div class="stat-label">In Progress</div><div class="stat-value">${inProgress}</div><div class="stat-sub">Active construction</div></div>
+      <div class="stat-card" style="--stat-color:var(--green)"><div class="stat-label">Completed</div><div class="stat-value">${completed}</div><div class="stat-sub">Ready for handover</div></div>
+      <div class="stat-card" style="--stat-color:var(--rose)"><div class="stat-label">Pending Requests</div><div class="stat-value">${pendingReqs}</div><div class="stat-sub">Customer customizations</div></div>
+    `;
+    this._renderProjects('dashProjects');
+  }
+
+  _renderProjects(containerId) {
+    const el = this._el(containerId);
+    if (!el) return;
+    el.innerHTML = this.data.projects.map(p => {
+      const units = [];
+      (p.blocks || []).forEach(b => (b.units || []).forEach(u => units.push(u)));
+      const avgProg = units.length ? Math.round(units.reduce((s, u) => s + this._progress(u), 0) / units.length) : 0;
+      return `
+        <div class="card" style="cursor:pointer" data-pid="${p.id}">
+          <div class="project-img" style="background-image:url('${p.image}')">
+            <span class="project-type-badge">${p.type}</span>
+          </div>
+          <div class="card-body">
+            <h3 class="font-bold">${p.name}</h3>
+            <p class="text-sm text-secondary">${p.location}</p>
+            <div class="progress-bar">
+              <div class="progress-header"><span>Progress</span><strong class="text-accent">${avgProg}%</strong></div>
+              <div class="progress-track"><div class="progress-fill ${avgProg===100?'complete':''}" style="width:${avgProg}%"></div></div>
+            </div>
+            <div class="flex justify-between text-xs text-dim" style="margin-top:8px;">
+              <span>${units.length} Units</span>
+              <span>${p.blocks?.[0]?.name || ''}</span>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-ghost btn-sm w-full">View Unit Matrix →</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    el.querySelectorAll('[data-pid]').forEach(card => {
+      card.addEventListener('click', () => {
+        this.selectedProject = card.dataset.pid;
+        this.selectedUnit = null;
+        this._navigate('units');
+      });
+    });
+  }
+
+  /* =================================================================
+     ADMIN: UNIT MATRIX
+     ================================================================= */
+  _renderUnits() {
+    const project = this.data.projects.find(p => p.id === this.selectedProject) || this.data.projects[0];
+    const block = project.blocks?.[0];
+    if (!block) return;
+
+    this._el('unitsTitle').textContent = `${project.name} — ${block.name}`;
+
+    // Filter bar
+    const filterEl = this._el('filterBar');
+    const packages = ['all', ...new Set(block.units.map(u => u.package))];
+    filterEl.innerHTML = packages.map(f =>
+      `<button class="btn btn-sm ${this.filter === f ? 'btn-primary' : 'btn-ghost'}" data-filter="${f}">${f === 'all' ? `All (${block.units.length})` : f}</button>`
+    ).join('');
+    filterEl.querySelectorAll('[data-filter]').forEach(b => {
+      b.addEventListener('click', () => { this.filter = b.dataset.filter; this._renderUnits(); });
+    });
+
+    let units = block.units;
+    if (this.filter !== 'all') units = units.filter(u => u.package === this.filter);
+
+    const grid = this._el('unitsGrid');
+    grid.innerHTML = units.map(u => {
+      const prog = this._progress(u);
+      const sel = this.selectedUnit === u.id ? 'selected' : '';
+      return `
+        <div class="unit-card ${sel}" data-uid="${u.id}">
+          <div class="flex justify-between items-center mb-sm">
+            <span class="unit-number">${u.number}</span>
+            <span class="badge ${this._pkgBadge(u.package)}">${u.package}</span>
+          </div>
+          <div class="unit-customer">${u.customer}</div>
+          <div class="text-xs text-dim mt-sm">${u.sqft} sq.ft · Floor ${u.floor}</div>
+          <div class="progress-bar">
+            <div class="progress-header"><span>Progress</span><strong>${prog}%</strong></div>
+            <div class="progress-track"><div class="progress-fill ${prog===100?'complete':''}" style="width:${prog}%"></div></div>
+          </div>
+          <div class="flex justify-between text-xs text-dim" style="margin-top:6px;">
+            <span>ETA: ${this._expectedDate(u)}</span>
+            ${prog === 100 ? '<span class="badge badge-approved">Ready</span>' : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.unit-card').forEach(c => {
+      c.addEventListener('click', () => {
+        this.selectedUnit = c.dataset.uid;
+        this.activeTab = 'timeline';
+        this._renderUnits();
+      });
+    });
+
+    this._renderUnitDetail();
+  }
+
+  _renderUnitDetail() {
+    const el = this._el('unitDetail');
+    if (!this.selectedUnit) { el.innerHTML = ''; return; }
+    const unit = this._unitRef(this.selectedUnit);
+    if (!unit) { el.innerHTML = ''; return; }
+    const prog = this._progress(unit);
+
+    el.innerHTML = `
+      <div class="detail-panel">
+        <div class="detail-hero">
+          <div>
+            <h2 class="page-title">${unit.number} — ${unit.customer} <span class="badge ${this._pkgBadge(unit.package)}">${unit.package}</span></h2>
+            <p class="text-sm text-secondary">${unit.sqft} sq.ft · Floor ${unit.floor} · ${unit.phone}</p>
+          </div>
+          <div class="flex gap-sm" style="flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" id="btnViewAsCust">👁 View as Customer</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn ${this.activeTab==='timeline'?'active':''}" data-dtab="timeline">Milestones</button>
+          <button class="tab-btn ${this.activeTab==='scope'?'active':''}" data-dtab="scope">Scope</button>
+          <button class="tab-btn ${this.activeTab==='photos'?'active':''}" data-dtab="photos">Photos (${unit.photos?.length||0})</button>
+          <button class="tab-btn ${this.activeTab==='requests'?'active':''}" data-dtab="requests">Requests (${unit.customizations?.length||0})</button>
+        </div>
+
+        <div id="detailTabContent"></div>
+      </div>`;
+
+    // Tab switching
+    el.querySelectorAll('.tab-btn').forEach(b => {
+      b.addEventListener('click', () => { this.activeTab = b.dataset.dtab; this._renderUnitDetail(); });
+    });
+
+    // View as customer
+    el.querySelector('#btnViewAsCust')?.addEventListener('click', () => {
+      this._loginAsCustomer(this._findUnit(this.selectedUnit));
+    });
+
+    const content = el.querySelector('#detailTabContent');
+    if (this.activeTab === 'timeline') content.innerHTML = this._htmlTimeline(unit);
+    else if (this.activeTab === 'scope') content.innerHTML = this._htmlScope(unit);
+    else if (this.activeTab === 'photos') content.innerHTML = this._htmlPhotos(unit.photos);
+    else if (this.activeTab === 'requests') {
+      content.innerHTML = this._htmlRequests(unit);
+      this._bindRequestActions(content, unit);
+    }
+  }
+
+  /* =================================================================
+     SHARED HTML BUILDERS
+     ================================================================= */
+  _htmlTimeline(unit) {
+    const stages = unit.stages || [];
+    if (stages.length === 0) return '<p class="text-sm text-dim">No milestones defined yet.</p>';
+    return `
+      <div class="flex justify-between items-center mb-md">
+        <div>
+          <div class="text-sm text-secondary">Progress: <strong class="text-accent">${this._progress(unit)}%</strong></div>
+          <div class="text-xs text-dim">Expected: ${this._expectedDate(unit)}</div>
+        </div>
+        <span class="badge ${this._pkgBadge(unit.package)}">${unit.package}</span>
+      </div>
+      <div class="timeline">
+        ${stages.map((s, i) => `
+          <div class="tl-step ${s.status}">
+            <div class="tl-dot">${s.status === 'completed' ? '✓' : (i+1)}</div>
+            <div class="tl-content">
+              <div class="flex justify-between items-center">
+                <span class="tl-title">${s.name}</span>
+                <span class="badge badge-${s.status === 'completed' ? 'completed' : s.status === 'in-progress' ? 'in-progress' : 'pending'}">${s.status.replace('-',' ')}</span>
+              </div>
+              <div class="tl-meta">${s.date || ''}</div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  _htmlScope(unit) {
+    const inc = unit.scopeIncluded || [];
+    const exc = unit.scopeExcluded || [];
+    return `
+      <div class="scope-grid">
+        <div class="scope-box scope-included">
+          <h4 class="text-sm font-bold" style="color:#6ee7b7; margin-bottom:10px;">✓ Aari Construction Delivers</h4>
+          ${inc.map(x => `<div class="text-sm" style="padding:3px 0;">✅ ${x}</div>`).join('')}
+        </div>
+        <div class="scope-box scope-excluded">
+          <h4 class="text-sm font-bold" style="color:#fda4af; margin-bottom:10px;">✗ Customer Responsibility</h4>
+          ${exc.length ? exc.map(x => `<div class="text-sm" style="padding:3px 0;">❌ ${x}</div>`).join('') : '<div class="text-sm text-dim">None — Full turnkey delivery</div>'}
+        </div>
+      </div>`;
+  }
+
+  _htmlPhotos(photos) {
+    if (!photos || photos.length === 0) return '<p class="text-sm text-dim">No photos uploaded yet.</p>';
+    return `<div class="photo-grid">${photos.map(p => `
+      <div class="card">
+        <img src="${p.url}" alt="${p.title}" style="width:100%; height:160px; object-fit:cover;">
+        <div class="card-body" style="padding:12px 14px;">
+          <div class="photo-title">${p.title}</div>
+          <div class="photo-meta"><span class="badge badge-semi">${p.stage}</span><span>${p.timestamp}</span></div>
+          <p class="text-xs text-dim mt-sm">${p.notes}</p>
+        </div>
+      </div>`).join('')}</div>`;
+  }
+
+  _htmlRequests(unit) {
+    const reqs = unit.customizations || [];
+    if (reqs.length === 0) return '<p class="text-sm text-dim">No customization requests.</p>';
+    return `<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>ID</th><th>Category</th><th>Request</th><th>Cost</th><th>Time</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>${reqs.map(r => `<tr>
+        <td><strong>${r.id}</strong></td>
+        <td><span class="badge badge-semi">${r.category}</span></td>
+        <td><strong>${r.title}</strong><div class="text-xs text-dim">${r.description}</div></td>
+        <td class="text-accent">${r.costImpact}</td>
+        <td class="text-dim text-xs">${r.timeImpact}</td>
+        <td><span class="badge ${this._statusBadge(r.status)}">${r.status}</span></td>
+        <td>${r.status === 'Pending' ? `<button class="btn btn-success btn-sm" data-rid="${r.id}" data-act="Approved">✓</button> <button class="btn btn-danger btn-sm" data-rid="${r.id}" data-act="Rejected">✗</button>` : '—'}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  _bindRequestActions(container, unit) {
+    container.querySelectorAll('[data-rid]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rid = btn.dataset.rid;
+        const act = btn.dataset.act;
+        const ref = this._unitRef(unit.id);
+        const req = ref?.customizations?.find(c => c.id === rid);
+        if (req) {
+          req.status = act;
+          this._save();
+          this.toast(`Request ${rid} ${act.toLowerCase()}`, 'success');
+          this._renderUnitDetail();
+          this._renderDashboard();
+        }
+      });
+    });
+  }
+
+  /* =================================================================
+     ADMIN: ALL REQUESTS
+     ================================================================= */
+  _renderAllRequests() {
+    const all = [];
+    this._allUnits().forEach(u => {
+      (u.customizations || []).forEach(c => all.push({ ...c, unitNumber: u.number, customer: u.customer, unitId: u.id }));
+    });
+
+    const el = this._el('allRequestsTable');
+    if (all.length === 0) { el.innerHTML = '<p class="text-sm text-dim">No requests found.</p>'; return; }
+
+    el.innerHTML = `<table class="data-table">
+      <thead><tr><th>ID</th><th>Unit</th><th>Customer</th><th>Category</th><th>Request</th><th>Cost</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>${all.map(r => `<tr>
+        <td><strong>${r.id}</strong></td>
+        <td>${r.unitNumber}</td>
+        <td>${r.customer}</td>
+        <td><span class="badge badge-semi">${r.category}</span></td>
+        <td><strong>${r.title}</strong></td>
+        <td class="text-accent">${r.costImpact}</td>
+        <td><span class="badge ${this._statusBadge(r.status)}">${r.status}</span></td>
+        <td>${r.status === 'Pending' ? `<button class="btn btn-success btn-sm" data-grid="${r.id}" data-gunit="${r.unitId}" data-gact="Approved">✓</button> <button class="btn btn-danger btn-sm" data-grid="${r.id}" data-gunit="${r.unitId}" data-gact="Rejected">✗</button>` : '—'}</td>
+      </tr>`).join('')}</tbody></table>`;
+
+    el.querySelectorAll('[data-grid]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ref = this._unitRef(btn.dataset.gunit);
+        const req = ref?.customizations?.find(c => c.id === btn.dataset.grid);
+        if (req) { req.status = btn.dataset.gact; this._save(); this.toast(`Request ${btn.dataset.grid} ${btn.dataset.gact.toLowerCase()}`, 'success'); this._renderAllRequests(); }
+      });
+    });
+  }
+
+  /* =================================================================
+     ADMIN: ADD CUSTOMER
+     ================================================================= */
+  _renderAddCustomerForm() {
+    const sel = this._el('acProject');
+    sel.innerHTML = this.data.projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    this._populateBlockDropdown();
+  }
+
+  _populateBlockDropdown() {
+    const pid = this._el('acProject').value;
+    const project = this.data.projects.find(p => p.id === pid);
+    const bSel = this._el('acBlock');
+    bSel.innerHTML = (project?.blocks || []).map(b => `<option value="${b.name}">${b.name}</option>`).join('');
+  }
+
+  _handleAddCustomer() {
+    const pid = this._el('acProject').value;
+    const blockName = this._el('acBlock').value;
+    const flatNo = this._el('acFlatNo').value.trim();
+    const floor = parseInt(this._el('acFloor').value);
+    const sqft = parseInt(this._el('acSqft').value);
+    const name = this._el('acName').value.trim();
+    const email = this._el('acEmail').value.trim();
+    const phone = this._el('acPhone').value.trim();
+    const pkg = this._el('acPackage').value;
+
+    if (!flatNo || !name || !email) { this.toast('Please fill all fields', 'error'); return; }
+
+    const project = this.data.projects.find(p => p.id === pid);
+    const block = project?.blocks?.find(b => b.name === blockName);
+    if (!block) { this.toast('Invalid project/block', 'error'); return; }
+
+    // Check if flat number already exists
+    if (block.units.some(u => u.number === flatNo)) {
+      this.toast(`Flat ${flatNo} already exists in ${blockName}`, 'error');
+      return;
+    }
+
+    const id = `${pid}-${flatNo.toLowerCase().replace(/\s+/g,'-')}-${Date.now()}`;
+
+    // Default stages based on package
+    let stages = [{ name: 'Foundation & Substructure', status: 'pending', date: 'TBD' }];
+    if (pkg === 'Bare-Bones') {
+      stages = [
+        { name: 'Foundation & Substructure', status: 'pending', date: 'TBD' },
+        { name: 'RCC Frame & Columns', status: 'pending', date: 'TBD' },
+        { name: 'Brick Masonry & Plastering', status: 'pending', date: 'TBD' }
+      ];
+    } else if (pkg === 'Semi-Finished') {
+      stages = [
+        { name: 'Foundation & Substructure', status: 'pending', date: 'TBD' },
+        { name: 'RCC Frame & Columns', status: 'pending', date: 'TBD' },
+        { name: 'Brick Masonry & Plastering', status: 'pending', date: 'TBD' },
+        { name: 'Electrical Conduit & Plumbing', status: 'pending', date: 'TBD' },
+        { name: 'Wall Painting (Primer + Base)', status: 'pending', date: 'TBD' },
+        { name: 'Tile Cladding & Fixtures', status: 'pending', date: 'TBD' },
+        { name: 'Final Inspection & Handover', status: 'pending', date: 'TBD' }
+      ];
+    } else {
+      stages = [
+        { name: 'Foundation & Substructure', status: 'pending', date: 'TBD' },
+        { name: 'RCC Frame & Columns', status: 'pending', date: 'TBD' },
+        { name: 'Brick Masonry & Plastering', status: 'pending', date: 'TBD' },
+        { name: 'Electrical & Plumbing', status: 'pending', date: 'TBD' },
+        { name: 'Premium Flooring & Paint', status: 'pending', date: 'TBD' },
+        { name: 'Modular Kitchen & Wardrobes', status: 'pending', date: 'TBD' },
+        { name: 'Smart Home Setup & Handover', status: 'pending', date: 'TBD' }
+      ];
+    }
+
+    const scopeMap = {
+      'Bare-Bones': { inc: ['RCC Structure', 'Brickwork', 'Plastering'], exc: ['Electrical', 'Plumbing', 'Painting', 'Interiors'] },
+      'Semi-Finished': { inc: ['Structure', 'Plastering', 'Electrical Conduit', 'Plumbing', 'Base Paint', 'Cladding'], exc: ['Modular Kitchen', 'Wardrobes', 'False Ceiling', 'Interior Decor'] },
+      'Fully Finished': { inc: ['Complete Turnkey Construction', 'Flooring', 'Kitchen', 'Wardrobes', 'Automation'], exc: [] }
+    };
+
+    const newUnit = {
+      id, number: flatNo, floor, sqft,
+      customer: name, email: email.toLowerCase(), phone,
+      package: pkg,
+      stages,
+      scopeIncluded: scopeMap[pkg]?.inc || [],
+      scopeExcluded: scopeMap[pkg]?.exc || [],
+      photos: [],
+      customizations: []
+    };
+
+    block.units.push(newUnit);
+    project.totalUnits = block.units.length;
+    this._save();
+    this._el('addCustomerForm').reset();
+    this.toast(`${name} assigned to ${flatNo} (${pkg})`, 'success');
+  }
+
+  /* =================================================================
+     ADMIN: PHOTO UPLOAD
+     ================================================================= */
+  _openUploadModal() {
+    const sel = this._el('upUnit');
+    const units = this._allUnits();
+    sel.innerHTML = units.map(u => `<option value="${u.id}">${u.number} — ${u.customer}</option>`).join('');
+    if (this.selectedUnit) sel.value = this.selectedUnit;
+    this._el('uploadModal').classList.add('open');
+  }
+
+  _handlePhotoUpload() {
+    const uid = this._el('upUnit').value;
+    const stage = this._el('upStage').value;
+    const url = this._el('upImage').value;
+    const title = this._el('upCaption').value.trim();
+    const notes = this._el('upNotes').value.trim();
+
+    const ref = this._unitRef(uid);
+    if (!ref) return;
+    if (!ref.photos) ref.photos = [];
+
+    ref.photos.unshift({
+      id: `ph-${Date.now()}`,
+      title: title || 'Site photo',
+      stage, url, notes: notes || '',
+      timestamp: new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    });
+
+    this._save();
+    this._el('uploadModal').classList.remove('open');
+    this.toast(`Photo uploaded to ${ref.number}`, 'success');
+    if (this.selectedUnit === uid) this._renderUnitDetail();
+  }
+
+  /* =================================================================
+     CUSTOMER: HOME
+     ================================================================= */
+  _renderCustomerHome() {
+    const unit = this._unitRef(this.customerUnit?.id);
+    if (!unit) return;
+    const info = this._findUnit(unit.id);
+    const prog = this._progress(unit);
+
+    this._el('custHero').innerHTML = `
+      <div class="customer-hero">
+        <div class="flex justify-between items-center" style="flex-wrap:wrap; gap:12px;">
+          <div>
+            <span class="badge ${this._pkgBadge(unit.package)}">${unit.package}</span>
+            <h1 style="font-size:1.5rem; font-weight:800; margin-top:6px;">Welcome, ${unit.customer}</h1>
+            <p class="text-sm text-secondary">${unit.number} · ${info?.projectName || ''} · ${unit.sqft} sq.ft</p>
+          </div>
+          <div style="text-align:right;">
+            <div class="text-xs text-dim" style="text-transform:uppercase;">Expected Handover</div>
+            <div style="font-size:1.3rem; font-weight:800; color:var(--accent-light);">${this._expectedDate(unit)}</div>
+          </div>
+        </div>
+        <div class="progress-bar" style="margin-top:18px;">
+          <div class="progress-header"><span>Stage: <strong style="color:var(--cyan)">${this._currentStage(unit)}</strong></span><strong>${prog}%</strong></div>
+          <div class="progress-track" style="height:8px;"><div class="progress-fill ${prog===100?'complete':''}" style="width:${prog}%"></div></div>
+        </div>
+      </div>`;
+
+    // Timeline
+    this._el('custTimeline').innerHTML = `
+      <div class="card">
+        <div class="card-body">
+          <h3 class="font-bold mb-md">Construction Progress</h3>
+          ${this._htmlTimeline(unit)}
+        </div>
+      </div>`;
+
+    // Sidebar: Latest photo + scope
+    const photos = unit.photos || [];
+    const latestPhoto = photos.length ? `
+      <div class="card mb-md">
+        <img src="${photos[0].url}" alt="${photos[0].title}" style="width:100%; height:150px; object-fit:cover;">
+        <div class="card-body" style="padding:12px 14px;">
+          <div class="photo-title">${photos[0].title}</div>
+          <div class="photo-meta"><span class="badge badge-semi">${photos[0].stage}</span><span>${photos[0].timestamp}</span></div>
+        </div>
+      </div>` : '<div class="card mb-md"><div class="card-body"><p class="text-sm text-dim">No photos yet.</p></div></div>';
+
+    this._el('custSidebar').innerHTML = `
+      ${latestPhoto}
+      <div class="card">
+        <div class="card-body">
+          <h4 class="font-bold mb-sm text-sm">Scope Summary</h4>
+          <div style="margin-bottom:10px;">
+            <div class="text-xs font-bold" style="color:#6ee7b7; text-transform:uppercase;">Included:</div>
+            <div class="text-sm text-secondary mt-sm">${(unit.scopeIncluded||[]).map(x=>'✓ '+x).join('<br>')}</div>
+          </div>
+          <div>
+            <div class="text-xs font-bold" style="color:var(--rose); text-transform:uppercase;">Your Scope:</div>
+            <div class="text-sm text-dim mt-sm">${(unit.scopeExcluded||[]).length ? (unit.scopeExcluded||[]).map(x=>'✗ '+x).join('<br>') : 'None — Turnkey'}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  _currentStage(unit) {
+    const ip = unit.stages?.find(s => s.status === 'in-progress');
+    if (ip) return ip.name;
+    const pending = unit.stages?.find(s => s.status === 'pending');
+    if (pending) return pending.name;
+    return 'Completed';
+  }
+
+  /* =================================================================
+     CUSTOMER: PHOTOS
+     ================================================================= */
+  _renderCustomerPhotos() {
+    const unit = this._unitRef(this.customerUnit?.id);
+    if (!unit) return;
+    this._el('custPhotos').innerHTML = this._htmlPhotos(unit.photos);
+  }
+
+  /* =================================================================
+     CUSTOMER: REQUESTS
+     ================================================================= */
+  _renderCustomerRequests() {
+    const unit = this._unitRef(this.customerUnit?.id);
     if (!unit) return;
 
-    // 1. Customer Hero Banner
-    const hero = document.getElementById('customerHeroBanner');
-    if (hero) {
-      const isReady = unit.isReadyForHandover;
-      hero.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
-          <div>
-            <span class="badge ${unit.packageBadge}">${unit.package} PACKAGE</span>
-            <h2 style="font-size: 1.8rem; font-weight: 800; margin: 8px 0 4px 0;">
-              Welcome, ${unit.customer}! 🏡
-            </h2>
-            <p style="font-size: 0.9rem; color: var(--text-muted);">
-              ${unit.number} &bull; ${unit.projectName} (${unit.blockName})
-            </p>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 0.78rem; color: var(--text-dim); text-transform: uppercase;">Expected Handover</div>
-            <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-amber-light);">${unit.expectedHandover}</div>
-            <div style="font-size: 0.75rem; color: #34d399;">
-              ${isReady ? '🎉 Handover Ready for Key Collection' : '⚡ Non-Interference Schedule: Protected from neighbor delays'}
+    const el = this._el('custExistingRequests');
+    const reqs = unit.customizations || [];
+    if (reqs.length === 0) {
+      el.innerHTML = '<p class="text-sm text-dim">No requests submitted yet.</p>';
+    } else {
+      el.innerHTML = reqs.map(r => `
+        <div class="card mb-sm">
+          <div class="card-body" style="padding:14px;">
+            <div class="flex justify-between items-center mb-sm">
+              <strong>${r.title}</strong>
+              <span class="badge ${this._statusBadge(r.status)}">${r.status}</span>
+            </div>
+            <p class="text-xs text-secondary">${r.description}</p>
+            <div class="flex justify-between text-xs text-dim mt-sm">
+              <span>${r.id} · ${r.category}</span>
+              <span class="text-accent">${r.costImpact}</span>
             </div>
           </div>
-        </div>
-
-        <div style="margin-top: 24px;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
-            <span>Current Stage: <strong style="color: var(--accent-cyan);">${unit.stage}</strong></span>
-            <strong>${unit.progress}% Complete</strong>
-          </div>
-          <div class="progress-track" style="height: 10px;">
-            <div class="progress-fill" style="width: ${unit.progress}%; background: ${isReady ? 'var(--accent-emerald)' : 'linear-gradient(90deg, var(--accent-amber), var(--accent-cyan))'};"></div>
-          </div>
-        </div>
-      `;
-    }
-
-    // 2. Customer Timeline
-    const timelineList = document.getElementById('customerTimelineList');
-    if (timelineList) {
-      const stages = unit.stages && unit.stages.length > 0 ? unit.stages : [
-        { name: "Foundation", status: "completed", date: "15 Jan 2026", note: "RCC foundation certified" },
-        { name: "Structure & Masonry", status: "completed", date: "22 Mar 2026", note: "Brick partition walls done" },
-        { name: "Plastering", status: "completed", date: "10 Jul 2026", note: "Cured and certified" },
-        { name: "Electrical & Plumbing", status: "completed", date: "20 Sep 2026", note: "Conduit lines installed" },
-        { name: "Painting & Cladding", status: "in-progress", date: "Target 15 Nov", note: "Primer & Balcony tiling" },
-        { name: "Key Handover", status: "pending", date: "Target 15 Dec", note: "Final walk-through" }
-      ];
-
-      timelineList.innerHTML = stages.map((st, i) => `
-        <div class="timeline-step ${st.status}">
-          <div class="timeline-marker">${st.status === 'completed' ? '✓' : (i + 1)}</div>
-          <div class="timeline-content">
-            <div class="timeline-title-row">
-              <span class="timeline-title">${st.name}</span>
-              <span class="badge ${st.status === 'completed' ? 'badge-ready' : (st.status === 'in-progress' ? 'badge-pending' : '')}">${st.status.toUpperCase()}</span>
-            </div>
-            <div class="timeline-note">${st.note || ''} &bull; <span style="color: var(--text-dim);">${st.date || ''}</span></div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // 3. Customer Latest Photo Preview & Scope Box
-    const latestPhotoEl = document.getElementById('customerLatestPhotoPreview');
-    if (latestPhotoEl) {
-      const photos = unit.photos || [];
-      if (photos.length > 0) {
-        const p = photos[0];
-        latestPhotoEl.innerHTML = `
-          <div class="photo-card" style="margin-bottom: 0;">
-            <img src="${p.url}" alt="${p.title}" class="photo-img" style="height: 160px;">
-            <div class="photo-caption">
-              <div class="photo-title">${p.title}</div>
-              <div class="photo-meta">
-                <span class="badge badge-semifinished">${p.stage}</span>
-                <span>${p.timestamp}</span>
-              </div>
-              <div class="photo-notes">${p.notes}</div>
-            </div>
-          </div>
-        `;
-      } else {
-        latestPhotoEl.innerHTML = `<p style="font-size: 0.82rem; color: var(--text-dim);">No photos uploaded yet.</p>`;
-      }
-    }
-
-    const scopeBox = document.getElementById('customerScopeBox');
-    if (scopeBox) {
-      const inc = unit.scopeIncluded || ["Structure", "Plaster"];
-      const exc = unit.scopeExcluded || ["Interior Furniture"];
-      scopeBox.innerHTML = `
-        <div style="margin-bottom: 12px;">
-          <div style="font-size: 0.75rem; color: #34d399; font-weight: 700; text-transform: uppercase;">Aari Construction Deliverables:</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
-            ${inc.map(x => `✓ ${x}`).join('<br>')}
-          </div>
-        </div>
-        <div>
-          <div style="font-size: 0.75rem; color: #f43f5e; font-weight: 700; text-transform: uppercase;">Your Contractor Scope:</div>
-          <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">
-            ${exc.length > 0 ? exc.map(x => `✗ ${x}`).join('<br>') : 'None (Turnkey House)'}
-          </div>
-        </div>
-      `;
-    }
-
-    // 4. Customer Full Photo Grid
-    const fullPhotoGrid = document.getElementById('customerFullPhotoGrid');
-    if (fullPhotoGrid) {
-      const photos = unit.photos || [];
-      if (photos.length === 0) {
-        fullPhotoGrid.innerHTML = `<p style="color: var(--text-muted);">No photos available for your unit yet.</p>`;
-      } else {
-        fullPhotoGrid.innerHTML = photos.map(p => `
-          <div class="photo-card">
-            <img src="${p.url}" alt="${p.title}" class="photo-img">
-            <div class="photo-caption">
-              <div class="photo-title">${p.title}</div>
-              <div class="photo-meta">
-                <span class="badge badge-semifinished">${p.stage}</span>
-                <span>${p.timestamp}</span>
-              </div>
-              <div class="photo-notes">${p.notes}</div>
-            </div>
-          </div>
-        `).join('');
-      }
-    }
-
-    // 5. Customer Existing Requests List
-    const custReqList = document.getElementById('customerExistingRequestsList');
-    if (custReqList) {
-      const custs = unit.customizations || [];
-      if (custs.length === 0) {
-        custReqList.innerHTML = `<p style="font-size: 0.8rem; color: var(--text-dim);">You have not submitted any customization requests yet.</p>`;
-      } else {
-        custReqList.innerHTML = custs.map(c => `
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <strong>${c.title}</strong>
-              <span class="badge ${c.status === 'Approved' ? 'badge-ready' : 'badge-pending'}">${c.status}</span>
-            </div>
-            <div style="font-size: 0.78rem; color: var(--text-muted);">${c.description}</div>
-            <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 6px; display: flex; justify-content: space-between;">
-              <span>Ref: ${c.id} &bull; ${c.category}</span>
-              <span style="color: #6ee7b7;">Cost Impact: ${c.costImpact}</span>
-            </div>
-          </div>
-        `).join('');
-      }
-    }
-
-    // 6. Customer Delivery & Schedule Details
-    const delivCard = document.getElementById('customerDeliveryDetailsCard');
-    if (delivCard) {
-      delivCard.innerHTML = `
-        <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
-            <div>
-              <h3 style="font-size: 1.2rem; font-weight: 700;">Guaranteed Handover Plan</h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted);">${unit.projectName} &mdash; ${unit.number}</p>
-            </div>
-            <span class="badge badge-ready">ON TRACK</span>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px;">
-            <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: var(--radius-sm);">
-              <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Selected Package</div>
-              <div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-amber-light);">${unit.package}</div>
-            </div>
-            <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: var(--radius-sm);">
-              <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Expected Date</div>
-              <div style="font-size: 1.1rem; font-weight: 700; color: #34d399;">${unit.expectedHandover}</div>
-            </div>
-            <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: var(--radius-sm);">
-              <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Remaining Work</div>
-              <div style="font-size: 1.1rem; font-weight: 700; color: var(--accent-cyan);">${100 - unit.progress}% Remaining</div>
-            </div>
-          </div>
-
-          <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px;">
-            <h4 style="font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 8px;">Why your house is delivered on-schedule:</h4>
-            <ul style="font-size: 0.8rem; color: var(--text-muted); padding-left: 20px; line-height: 1.8;">
-              <li><strong>Independent Package Gates:</strong> Because you selected the <em>${unit.package}</em> package, your handover is tied only to structure and cladding, not the interior decor of neighboring apartments.</li>
-              <li><strong>Concurrent Customization:</strong> Any requested changes are processed concurrently so electrical or plastering works are not delayed.</li>
-              <li><strong>Digital Inspection Certificate:</strong> Once cladding and paint inspection completes, you receive the key handover pass without waiting for complex-wide inauguration.</li>
-            </ul>
-          </div>
-        </div>
-      `;
+        </div>`).join('');
     }
   }
 
-  /* =========================================================================
-     SITE PHOTO UPLOAD SIMULATOR
-     ========================================================================= */
-  handleSitePhotoUpload() {
-    const url = document.getElementById('photoSelectPreset').value;
-    const stage = document.getElementById('photoStage').value;
-    const title = document.getElementById('photoTitle').value;
-    const notes = document.getElementById('photoNotes').value;
+  _handleCustRequest() {
+    const unit = this._unitRef(this.customerUnit?.id);
+    if (!unit) return;
+    const cat = this._el('crCategory').value;
+    const title = this._el('crTitle').value.trim();
+    const desc = this._el('crDesc').value.trim();
+    if (!title || !desc) return;
 
-    const newPhoto = {
-      id: `ph-new-${Date.now()}`,
-      title: title || 'Field Inspection Photo',
-      stage: stage || 'Painting',
-      timestamp: 'Just Now (Floor Engineer)',
-      url: url,
-      notes: notes || 'Verified by on-site supervisor.'
-    };
-
-    // Attach to selected unit
-    let targetUnit = null;
-    this.data.projects.forEach(p => {
-      p.blocks?.forEach(b => {
-        b.units?.forEach(u => {
-          if (u.id === this.state.selectedUnitId) {
-            if (!u.photos) u.photos = [];
-            u.photos.unshift(newPhoto);
-            targetUnit = u;
-          }
-        });
-      });
-    });
-
-    this.closeModal('uploadModal');
-    this.saveState();
-    this.showToast(`Photo "${title}" posted to ${targetUnit?.number || 'Unit'} site log!`, 'success');
-    this.renderAll();
-  }
-
-  /* =========================================================================
-     CUSTOMER CUSTOMIZATION SUBMISSION WORKFLOW
-     ========================================================================= */
-  handleCustomerCustomizationSubmit() {
-    const category = document.getElementById('reqCategory').value;
-    const title = document.getElementById('reqTitle').value;
-    const description = document.getElementById('reqDescription').value;
-
-    const newId = `CR-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const newReq = {
-      id: newId,
-      category: category,
-      title: title,
-      description: description,
+    if (!unit.customizations) unit.customizations = [];
+    unit.customizations.unshift({
+      id: `CR-${Math.floor(1000+Math.random()*9000)}`,
+      category: cat, title, description: desc,
       status: 'Pending',
-      date: 'Today',
-      costImpact: '+ ₹6,500 (Est.)',
-      timeImpact: '0 days (Concurrent)'
-    };
-
-    // Attach to current customer unit
-    this.data.projects.forEach(p => {
-      p.blocks?.forEach(b => {
-        b.units?.forEach(u => {
-          if (u.id === this.state.currentCustomerId) {
-            if (!u.customizations) u.customizations = [];
-            u.customizations.unshift(newReq);
-          }
-        });
-      });
+      date: new Date().toLocaleDateString('en-IN'),
+      costImpact: 'Under review',
+      timeImpact: 'Under review'
     });
 
-    // Reset form
-    document.getElementById('customizationRequestForm').reset();
-    this.saveState();
-    this.showToast(`Request #${newId} submitted! Under review by Aari's Lead Engineer.`, 'success');
-    this.renderAll();
+    this._save();
+    this._el('custRequestForm').reset();
+    this.toast('Request submitted for review', 'success');
+    this._renderCustomerRequests();
   }
 
-  /* =========================================================================
-     TEAM PRESENTATION DIVISION RENDERING
-     ========================================================================= */
-  renderTeamAllocation() {
-    const grid = document.getElementById('hldTeamGrid');
-    if (!grid) return;
+  /* =================================================================
+     CUSTOMER: DELIVERY
+     ================================================================= */
+  _renderCustomerDelivery() {
+    const unit = this._unitRef(this.customerUnit?.id);
+    if (!unit) return;
+    const info = this._findUnit(unit.id);
+    const prog = this._progress(unit);
+    const remaining = unit.stages?.filter(s => s.status !== 'completed') || [];
 
-    grid.innerHTML = this.data.teamBreakdown.map(m => `
-      <div class="team-member-card">
-        <div class="team-member-title">
-          <span>${m.member}</span>
-          <span style="font-size: 0.72rem; color: #a78bfa;">${m.role}</span>
+    this._el('custDeliveryContent').innerHTML = `
+      <div class="card">
+        <div class="card-body">
+          <div class="flex justify-between items-center mb-md" style="flex-wrap:wrap; gap:10px;">
+            <h3 class="font-bold">Handover Plan</h3>
+            <span class="badge badge-approved">On Track</span>
+          </div>
+
+          <div class="stats-row" style="margin-bottom:20px;">
+            <div class="stat-card" style="--stat-color:var(--accent)"><div class="stat-label">Package</div><div class="stat-value" style="font-size:1.2rem;">${unit.package}</div></div>
+            <div class="stat-card" style="--stat-color:var(--green)"><div class="stat-label">Expected Date</div><div class="stat-value" style="font-size:1.2rem;">${this._expectedDate(unit)}</div></div>
+            <div class="stat-card" style="--stat-color:var(--cyan)"><div class="stat-label">Remaining</div><div class="stat-value" style="font-size:1.2rem;">${100-prog}%</div></div>
+          </div>
+
+          ${remaining.length ? `<h4 class="font-bold text-sm mb-sm">Pending Milestones:</h4>
+          <ul style="list-style:none; font-size:.85rem; line-height:1.8; color:var(--text-secondary);">
+            ${remaining.map(s => `<li>⏳ ${s.name} — ${s.date}</li>`).join('')}
+          </ul>` : '<p class="text-sm" style="color:var(--green);">All milestones completed! Ready for handover.</p>'}
+
+          <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+            <h4 class="font-bold text-sm mb-sm">Non-Interference Guarantee</h4>
+            <p class="text-sm text-secondary">Your ${unit.package} delivery is tracked independently. Custom work on neighboring units will never delay your handover date.</p>
+          </div>
         </div>
-        <div class="team-member-focus">${m.focus}</div>
       </div>
-    `).join('');
-  }
-
-  /* =========================================================================
-     MODAL & TOAST HELPERS
-     ========================================================================= */
-  openModal(modalId) {
-    const el = document.getElementById(modalId);
-    if (el) el.classList.add('active');
-  }
-
-  closeModal(modalId) {
-    const el = document.getElementById(modalId);
-    if (el) el.classList.remove('active');
-  }
-
-  showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
-    toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
-
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      toast.style.transition = 'all 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 3200);
+      <div class="mt-md">${this._htmlScope(unit)}</div>`;
   }
 }
 
-// Instantiate on DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => {
-  window.aariApp = new AariConstructionApp();
-});
+document.addEventListener('DOMContentLoaded', () => { window.app = new App(); });
