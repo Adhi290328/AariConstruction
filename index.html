@@ -3,385 +3,894 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aari Construction — Project Tracker</title>
+  <title>Aari Construction — Architectural Landmarks & Custom Homes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Cinzel:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- ================================================================
-       LOGIN PAGE (Landing)
-       ================================================================ -->
-  <div id="loginPage" class="login-page">
-    <div class="login-container">
-      <div class="login-brand">
-        <div class="login-logo">AC</div>
-        <h1>AARI <span>CONSTRUCTION</span></h1>
-        <p>Precision-Built. Customer-Defined.</p>
-      </div>
+  <!-- =====================================================================
+       TOP GLOBAL HEADER & NAVIGATION
+       ===================================================================== -->
+  <header class="site-header" id="siteHeader">
+    <div class="header-container">
+      
+      <!-- Brand Logo -->
+      <a href="#" class="brand-link" id="brandLogoBtn">
+        <div class="brand-symbol">AC</div>
+        <div class="brand-text">
+          <span class="brand-title">AARI <em>CONSTRUCTION</em></span>
+          <span class="brand-subtitle">Crafting Landmarks • Since 2008</span>
+        </div>
+      </a>
 
-      <div class="login-card">
-        <div class="login-tabs">
-          <button class="login-tab active" data-login-tab="admin">Admin Login</button>
-          <button class="login-tab" data-login-tab="customer">Customer Login</button>
+      <!-- Desktop Nav for Landing Page -->
+      <nav class="desktop-nav" id="landingNav">
+        <a href="#heroSection" class="nav-link active">Home</a>
+        <a href="#historicalSection" class="nav-link">Historical Projects</a>
+        <a href="#categoriesSection" class="nav-link">Categories</a>
+        <a href="#ownerSection" class="nav-link">About Owner</a>
+        <a href="#contactSection" class="nav-link">Contact</a>
+      </nav>
+
+      <!-- Desktop Nav for Client Portal -->
+      <nav class="desktop-nav hidden" id="clientNav">
+        <button class="nav-tab active" data-target-tab="categoriesTab">Explore Categories</button>
+        <button class="nav-tab" data-target-tab="myRequestsTab">My Requests <span class="badge-count" id="userRequestCount">0</span></button>
+        <button class="nav-tab" data-target-tab="portfolioTab">Completed Landmarks</button>
+      </nav>
+
+      <!-- Desktop Nav for Admin Portal -->
+      <nav class="desktop-nav hidden" id="adminNav">
+        <button class="nav-tab active" data-admin-tab="requestsTab">Client Requests <span class="badge-count badge-warning" id="pendingRequestCount">0</span></button>
+        <button class="nav-tab" data-admin-tab="approvedTab">Approved Units</button>
+        <button class="nav-tab" data-admin-tab="addCustomerTab">+ Add Customer (Flat No)</button>
+      </nav>
+
+      <!-- Header Right Action Area -->
+      <div class="header-actions">
+        
+        <!-- Logged Out state: Login Button in TOP RIGHT -->
+        <div id="unauthControls">
+          <button class="btn btn-login-top" id="btnOpenLoginModal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            <span>Sign In / Login</span>
+          </button>
         </div>
 
-        <!-- Admin Login Form -->
-        <form id="adminLoginForm" class="login-form active">
-          <div id="adminLoginError" class="login-error"></div>
-          <div class="form-group">
-            <label class="form-label" for="adminUser">Username</label>
-            <input class="form-input" id="adminUser" type="text" placeholder="Enter admin username" required autocomplete="username">
+        <!-- Logged In state: User profile pill & Logout -->
+        <div id="authControls" class="auth-controls hidden">
+          <div class="user-pill" id="userPill">
+            <div class="user-avatar" id="headerAvatar">U</div>
+            <div class="user-info-text">
+              <span class="user-name" id="headerUserName">Client Name</span>
+              <span class="user-role-badge" id="headerUserRole">Client</span>
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="adminPass">Password</label>
-            <input class="form-input" id="adminPass" type="password" placeholder="Enter password" required autocomplete="current-password">
-          </div>
-          <button type="submit" class="btn btn-primary w-full">Sign In as Admin</button>
-          <p class="text-center text-xs text-dim mt-md">Demo credentials: admin / aari2026</p>
-        </form>
+          <button class="btn-logout" id="btnLogout" title="Log out">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Logout</span>
+          </button>
+        </div>
 
-        <!-- Customer Login Form -->
-        <form id="customerLoginForm" class="login-form">
-          <div id="customerLoginError" class="login-error"></div>
-          <div class="form-group">
-            <label class="form-label" for="custName">Full Name</label>
-            <input class="form-input" id="custName" type="text" placeholder="Enter your name" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="custEmail">Email Address</label>
-            <input class="form-input" id="custEmail" type="email" placeholder="Enter your email" required>
-          </div>
-          <button type="submit" class="btn btn-primary w-full">View My Home</button>
-          <p class="text-center text-xs text-dim mt-md">Try: Priya Sharma / priya@email.com</p>
-        </form>
+        <!-- Mobile Hamburger Toggle -->
+        <button class="mobile-menu-toggle" id="btnMobileToggle" aria-label="Toggle navigation menu">
+          <span></span><span></span><span></span>
+        </button>
+
       </div>
+
+    </div>
+
+    <!-- Mobile Drawer -->
+    <div class="mobile-drawer" id="mobileDrawer">
+      <div class="mobile-drawer-inner" id="mobileDrawerContent">
+        <!-- Injected via JavaScript based on auth state -->
+      </div>
+    </div>
+  </header>
+
+
+  <!-- =====================================================================
+       MAIN CONTENT CONTAINER
+       ===================================================================== -->
+  <main class="main-body">
+
+    <!-- ================================================================
+         1. LANDING PAGE VIEW (Default for guests)
+         ================================================================ -->
+    <section id="viewLanding" class="view-section active">
+
+      <!-- Hero Section -->
+      <section class="hero-section" id="heroSection">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="pulse-dot"></span>
+            18+ Years of Master Craftsmanship in Tamil Nadu
+          </div>
+          <h1 class="hero-title">
+            Architectural Landmarks Engineered With Precision.<br>
+            <span class="gold-gradient-text">Customized To Your Exact Vision.</span>
+          </h1>
+          <p class="hero-lead">
+            From bare-bones structural shells to ultra-luxury turnkey living — Aari Construction delivers individual houses, gated villas, and landmark apartments with complete customization flexibility.
+          </p>
+
+          <div class="hero-cta-group">
+            <a href="#historicalSection" class="btn btn-primary btn-lg">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              View Historical Buildings
+            </a>
+            <button class="btn btn-outline-gold btn-lg btn-trigger-login">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Sign In to Calculate Quotation
+            </button>
+          </div>
+
+          <!-- Trust & Stats Ribbon -->
+          <div class="hero-stats-grid">
+            <div class="stat-card">
+              <span class="stat-num">480+</span>
+              <span class="stat-label">Units Handed Over</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">18+</span>
+              <span class="stat-label">Years of Legacy</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">3 Tiers</span>
+              <span class="stat-label">Delivery Customization</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">100%</span>
+              <span class="stat-label">RERA & Title Clear</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- HISTORICAL BUILDINGS SHOWCASE -->
+      <section class="section-container" id="historicalSection">
+        <div class="section-header text-center">
+          <div class="eyebrow">PORTFOLIO OF EXCELLENCE</div>
+          <h2 class="section-title">Historical Landmarks Completed by Aari Construction</h2>
+          <p class="section-subtitle">
+            A verified track record of landmark residences across Chennai, Coimbatore, Madurai, Trichy, and Ooty.
+          </p>
+          
+          <!-- Category Filter Pills -->
+          <div class="filter-pills" id="portfolioFilter">
+            <button class="filter-pill active" data-filter="all">All Projects (6)</button>
+            <button class="filter-pill" data-filter="Apartment">Apartments</button>
+            <button class="filter-pill" data-filter="Villa">Luxury Villas</button>
+            <button class="filter-pill" data-filter="Individual House">Individual Houses</button>
+          </div>
+        </div>
+
+        <!-- Historical Buildings Grid -->
+        <div class="portfolio-grid" id="historicalGrid">
+          <!-- Dynamically populated from data.js -->
+        </div>
+      </section>
+
+
+      <!-- 3 CATEGORIES PREVIEW SECTION -->
+      <section class="section-container bg-darker" id="categoriesSection">
+        <div class="section-header text-center">
+          <div class="eyebrow">OUR SPECIALIZATION</div>
+          <h2 class="section-title">Three Core Construction Categories</h2>
+          <p class="section-subtitle">
+            Every home is built to order. Sign in to customize your quotation range, choose structural finishes, and connect directly with our site owner.
+          </p>
+        </div>
+
+        <div class="categories-preview-grid">
+          
+          <!-- Individual House Card -->
+          <div class="category-preview-card">
+            <div class="card-media">
+              <img src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=800&q=80" alt="Individual House" loading="lazy">
+              <span class="category-badge">Category 01</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">Individual House</h3>
+              <p class="card-price">Starting from ₹25 Lakhs – ₹1.80 Crores</p>
+              <p class="card-desc">
+                Your standalone dream home built on your plot or ours. Choose Bare Bones structure (masonry + plaster) or full turnkey delivery.
+              </p>
+              <ul class="card-bullets">
+                <li>✓ 2 BHK, 3 BHK, 4 BHK & Duplex Plans</li>
+                <li>✓ Independent foundation & terrace ownership</li>
+                <li>✓ Custom floor layouts & Vastu compliance</li>
+              </ul>
+              <button class="btn btn-primary w-full btn-inquire-direct" data-cat="individual">
+                Configure & Inquire Now
+              </button>
+            </div>
+          </div>
+
+          <!-- Luxury Villa Card -->
+          <div class="category-preview-card featured">
+            <div class="card-ribbon">Most Demanded</div>
+            <div class="card-media">
+              <img src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80" alt="Luxury Villas" loading="lazy">
+              <span class="category-badge">Category 02</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">Luxury Villas</h3>
+              <p class="card-price">Starting from ₹80 Lakhs – ₹5.50 Crores</p>
+              <p class="card-desc">
+                Opulent gated community villas offering maximum privacy, landscape gardens, private plunge pool provisions, and bespoke interiors.
+              </p>
+              <ul class="card-bullets">
+                <li>✓ 3 BHK, 4 BHK, 5 BHK Estate Residences</li>
+                <li>✓ Gated community security & luxury club amenities</li>
+                <li>✓ Option to customize semi-finished or turnkey interior</li>
+              </ul>
+              <button class="btn btn-primary w-full btn-inquire-direct" data-cat="villa">
+                Configure & Inquire Now
+              </button>
+            </div>
+          </div>
+
+          <!-- Apartments Card -->
+          <div class="category-preview-card">
+            <div class="card-media">
+              <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80" alt="Apartments" loading="lazy">
+              <span class="category-badge">Category 03</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">Apartments</h3>
+              <p class="card-price">Starting from ₹18 Lakhs – ₹95 Lakhs</p>
+              <p class="card-desc">
+                High-rise urban community living in prime metropolitan corridors. Earthquake-resistant RCC frame with tailor-made modular provisions.
+              </p>
+              <ul class="card-bullets">
+                <li>✓ 1 BHK, 2 BHK, 3 BHK & Penthouses</li>
+                <li>✓ High rental yield & premium city connectivity</li>
+                <li>✓ Custom electrical conduit & sanitary finish options</li>
+              </ul>
+              <button class="btn btn-primary w-full btn-inquire-direct" data-cat="apartment">
+                Configure & Inquire Now
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- ABOUT SITE OWNER & MANAGEMENT SECTION -->
+      <section class="section-container" id="ownerSection">
+        <div class="owner-showcase-box">
+          <div class="owner-visual">
+            <div class="owner-avatar-large">AK</div>
+            <div class="owner-stamp">RERA Registered Builder</div>
+          </div>
+          <div class="owner-details">
+            <div class="eyebrow">DIRECT LEADERSHIP</div>
+            <h2 class="owner-title">Meet Mr. Aarikrishnan</h2>
+            <h3 class="owner-designation">Founder & Managing Director, Aari Construction</h3>
+            <p class="owner-bio">
+              "At Aari Construction, we believe a home shouldn't force you into a one-size-fits-all box. Whether you want us to deliver a strong, plastered structural shell so you can customize your own painting and interior woodwork, or you want a turnkey luxury residence handed over on a silver platter, our team personally monitors every pour of concrete."
+            </p>
+            
+            <div class="owner-contact-cards">
+              <div class="contact-card">
+                <span class="contact-card-icon">📞</span>
+                <div>
+                  <span class="contact-label">Direct Line / Verification</span>
+                  <a href="tel:+919876543210" class="contact-value">+91 98765 43210</a>
+                </div>
+              </div>
+              <div class="contact-card">
+                <span class="contact-card-icon">✉️</span>
+                <div>
+                  <span class="contact-label">Official Correspondence</span>
+                  <a href="mailto:contact@aariconstruction.in" class="contact-value">contact@aariconstruction.in</a>
+                </div>
+              </div>
+              <div class="contact-card">
+                <span class="contact-card-icon">📍</span>
+                <div>
+                  <span class="contact-label">Corporate Office</span>
+                  <span class="contact-value">Aari Towers, 42 Mount Road, Guindy, Chennai</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="owner-action-row">
+              <a href="tel:+919876543210" class="btn btn-primary">
+                Call Owner Directly
+              </a>
+              <a href="https://wa.me/919876543210?text=Hello%20Aari%20Construction,%20I%20am%20interested%20in%20a%20project." target="_blank" class="btn btn-secondary">
+                WhatsApp Chat
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="site-footer" id="contactSection">
+        <div class="footer-grid">
+          <div class="footer-col">
+            <div class="footer-brand">AARI <span>CONSTRUCTION</span></div>
+            <p class="footer-text">
+              Precision-engineered construction across Tamil Nadu. Providing customizable residential solutions from bare bones to luxury turnkey finishes.
+            </p>
+            <p class="footer-license">TN RERA Reg: TN/01/Building/2021/0492</p>
+          </div>
+          <div class="footer-col">
+            <h4 class="footer-head">Direct Access</h4>
+            <ul class="footer-links">
+              <li><a href="#" class="btn-trigger-login" data-tab="client">Client Portal Login</a></li>
+              <li><a href="#" class="btn-trigger-login" data-tab="admin">Admin (Aari) Login</a></li>
+              <li><a href="#historicalSection">Historical Landmarks</a></li>
+              <li><a href="#categoriesSection">Pricing & Categories</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4 class="footer-head">Office Hours & Support</h4>
+            <p class="footer-text">Monday – Saturday: 9:00 AM – 7:30 PM</p>
+            <p class="footer-text">Site Visits by Appointment Only</p>
+            <p class="footer-phone">Hotline: +91 98765 43210</p>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>© 2008 – 2026 Aari Construction Pvt Ltd. All rights reserved.</p>
+        </div>
+      </footer>
+
+    </section>
+
+
+    <!-- ================================================================
+         2. CLIENT PORTAL VIEW (For visitors logged in with Name & Email)
+         ================================================================ -->
+    <section id="viewClientPortal" class="view-section">
+
+      <!-- Client Welcome Banner -->
+      <div class="client-banner">
+        <div class="client-banner-content">
+          <div class="client-pill">Client Portal Active</div>
+          <h1 class="client-greeting">Welcome, <span id="clientWelcomeName">Customer</span>!</h1>
+          <p class="client-subtitle">
+            Configure your personalized construction estimate below. Choose a category, set your budget range, and our Managing Director Mr. Aarikrishnan will personally review and verify your request.
+          </p>
+        </div>
+        <div class="client-banner-actions">
+          <button class="btn btn-gold" id="btnScrollToCategories">Configure New Request</button>
+        </div>
+      </div>
+
+      <!-- Tab Content 1: Categories to Choose From -->
+      <div class="client-tab-panel active" id="tabCategoriesContent">
+        
+        <div class="section-header">
+          <div class="eyebrow">SELECT CATEGORY TO BEGIN</div>
+          <h2 class="section-title">Select Your Project Type</h2>
+          <p class="section-subtitle">
+            Click on any category to open the custom quotation builder and submit your registration request.
+          </p>
+        </div>
+
+        <div class="client-categories-grid" id="clientCategoriesGrid">
+          <!-- Populated from data.js -->
+        </div>
+
+      </div>
+
+      <!-- Tab Content 2: My Submitted Requests / Tracking -->
+      <div class="client-tab-panel" id="tabMyRequestsContent">
+        <div class="section-header">
+          <div class="eyebrow">APPLICATION TRACKING</div>
+          <h2 class="section-title">My Submitted Registration & Quotation Requests</h2>
+          <p class="section-subtitle">
+            Track the status of your inquiries. Our team calls each applicant to manually verify details and payment.
+          </p>
+        </div>
+
+        <div class="requests-list-container" id="clientRequestsList">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Tab Content 3: Portfolio View within Portal -->
+      <div class="client-tab-panel" id="tabPortfolioContent">
+        <div class="section-header text-center">
+          <div class="eyebrow">COMPLETED ARCHITECTURE</div>
+          <h2 class="section-title">Aari Construction Landmark Gallery</h2>
+          <p class="section-subtitle">Browse inspiration from projects we have successfully engineered and delivered.</p>
+        </div>
+        <div class="portfolio-grid" id="clientPortfolioGrid"></div>
+      </div>
+
+    </section>
+
+
+    <!-- ================================================================
+         3. ADMIN DASHBOARD VIEW (When logged in as 'aari')
+         ================================================================ -->
+    <section id="viewAdminDashboard" class="view-section">
+      
+      <!-- Admin Top Stats Ribbon -->
+      <div class="admin-header-strip">
+        <div>
+          <div class="admin-badge">Admin Operations Console</div>
+          <h1 class="admin-title">Client Inquiries & Verification Pipeline</h1>
+          <p class="admin-desc">
+            Review incoming quotations from prospective clients. <strong>Call and verify payment manually</strong> before granting approval or assigning flat/unit numbers.
+          </p>
+        </div>
+        <div class="admin-actions-bar">
+          <button class="btn btn-primary" id="btnAdminQuickAddCustomer">+ Direct Customer Add</button>
+        </div>
+      </div>
+
+      <!-- Admin KPI Counters -->
+      <div class="admin-metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon">📥</div>
+          <div class="metric-data">
+            <span class="metric-val" id="metricTotal">0</span>
+            <span class="metric-name">Total Inquiries</span>
+          </div>
+        </div>
+        <div class="metric-card warning">
+          <div class="metric-icon">⏳</div>
+          <div class="metric-data">
+            <span class="metric-val" id="metricPending">0</span>
+            <span class="metric-name">Pending Verification</span>
+          </div>
+        </div>
+        <div class="metric-card success">
+          <div class="metric-icon">✅</div>
+          <div class="metric-data">
+            <span class="metric-val" id="metricApproved">0</span>
+            <span class="metric-name">Approved Units</span>
+          </div>
+        </div>
+        <div class="metric-card danger">
+          <div class="metric-icon">❌</div>
+          <div class="metric-data">
+            <span class="metric-val" id="metricCancelled">0</span>
+            <span class="metric-name">Cancelled</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Tab Panels -->
+      <!-- Tab 1: Requests Pipeline -->
+      <div class="admin-tab-pane active" id="paneRequests">
+        
+        <div class="pipeline-controls">
+          <div class="search-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="adminSearchInput" class="form-input" placeholder="Search by client name, phone, or category...">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Status Filter:</label>
+            <select id="adminStatusFilter" class="form-select">
+              <option value="all">All Statuses</option>
+              <option value="Pending" selected>Pending Manual Verification (Call needed)</option>
+              <option value="Approved">Approved Only</option>
+              <option value="Cancelled">Cancelled Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="admin-requests-list" id="adminRequestsTable">
+          <!-- Injected via app.js -->
+        </div>
+
+      </div>
+
+      <!-- Tab 2: Approved Units List -->
+      <div class="admin-tab-pane" id="paneApproved">
+        <div class="section-header">
+          <h2 class="section-title">Approved Client Allotments</h2>
+          <p class="section-subtitle">Units verified with confirmed flat numbers and customer records.</p>
+        </div>
+        <div class="approved-units-grid" id="adminApprovedGrid">
+          <!-- Injected via app.js -->
+        </div>
+      </div>
+
+      <!-- Tab 3: Direct Add Customer with Flat No -->
+      <div class="admin-tab-pane" id="paneAddCustomer">
+        <div class="form-card-container">
+          <div class="form-card-header">
+            <h2 class="form-card-title">Direct Customer Allotment & Flat Registration</h2>
+            <p class="form-card-subtitle">
+              Admin facility to directly register a client with verified flat number, project category, and agreed budget.
+            </p>
+          </div>
+
+          <form id="adminAddCustomerForm" class="styled-form">
+            <div class="form-row two-col">
+              <div class="form-group">
+                <label class="form-label" for="newCustName">Customer Full Name *</label>
+                <input type="text" id="newCustName" class="form-input" placeholder="e.g. Anand Murugan" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="newCustPhone">Contact Phone Number *</label>
+                <input type="tel" id="newCustPhone" class="form-input" placeholder="e.g. +91 98401 23456" required>
+              </div>
+            </div>
+
+            <div class="form-row two-col">
+              <div class="form-group">
+                <label class="form-label" for="newCustEmail">Email Address *</label>
+                <input type="email" id="newCustEmail" class="form-input" placeholder="e.g. anand@outlook.com" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="newCustCategory">Project Category *</label>
+                <select id="newCustCategory" class="form-select" required>
+                  <option value="Apartments">Apartments</option>
+                  <option value="Villas">Villas</option>
+                  <option value="Individual House">Individual House</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row two-col">
+              <div class="form-group">
+                <label class="form-label" for="newCustFlatNo">Assigned Flat / Unit Number *</label>
+                <input type="text" id="newCustFlatNo" class="form-input" placeholder="e.g. Tower A - Flat 304, or Plot #18" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="newCustBHK">Configuration / BHK *</label>
+                <input type="text" id="newCustBHK" class="form-input" placeholder="e.g. 3 BHK Luxury" required>
+              </div>
+            </div>
+
+            <div class="form-row two-col">
+              <div class="form-group">
+                <label class="form-label" for="newCustBudget">Agreed Price (in ₹) *</label>
+                <input type="text" id="newCustBudget" class="form-input" placeholder="e.g. ₹75,00,000 (₹75 Lakhs)" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="newCustTier">Customization Finish Level *</label>
+                <select id="newCustTier" class="form-select" required>
+                  <option value="full_finished">Tier 3: Luxury Turnkey Finished</option>
+                  <option value="semi_finished">Tier 2: Semi-Finished (Plaster + Conduits)</option>
+                  <option value="bare_bones">Tier 1: Bare Bones Structure Shell</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="newCustNotes">Site Engineer / Approval Notes</label>
+              <textarea id="newCustNotes" class="form-textarea" rows="2" placeholder="Payment verified via RTGS. Structure foundation inspected."></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary btn-lg">
+                Register Customer & Assign Flat
+              </button>
+              <button type="reset" class="btn btn-outline">Clear Form</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =====================================================================
+       4. MODALS
+       ===================================================================== -->
+
+  <!-- A. SINGLE UNIFIED LOGIN MODAL (Top Right Button Action) -->
+  <div class="modal-backdrop" id="loginModal">
+    <div class="modal-dialog login-modal-dialog">
+      <button class="modal-close" id="btnCloseLoginModal" aria-label="Close modal">&times;</button>
+      
+      <div class="login-modal-header text-center">
+        <div class="brand-symbol mx-auto mb-sm">AC</div>
+        <h2 class="modal-title">Sign In to Aari Construction</h2>
+        <p class="modal-subtitle">Access your client quotation portal or secure admin console</p>
+      </div>
+
+      <!-- Login Tabs: Client Login vs Admin Login -->
+      <div class="login-tab-switcher">
+        <button class="login-switch-btn active" id="tabBtnClient">
+          <span class="switch-icon">👤</span>
+          <span>Client / User Login</span>
+        </button>
+        <button class="login-switch-btn" id="tabBtnAdmin">
+          <span class="switch-icon">🛡️</span>
+          <span>Admin (Aari) Login</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Client Login Form (Simple Name + Email, Anyone can log in directly) -->
+      <form id="clientLoginForm" class="login-panel active">
+        <div class="login-intro-note">
+          <span class="note-icon">✨</span>
+          <span>Direct Access: Enter your name and email to configure quotations for Individual Houses, Villas, and Apartments.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="clientLoginName">Full Name *</label>
+          <input type="text" id="clientLoginName" class="form-input" placeholder="e.g. Adhi Shankar" required autocomplete="name">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="clientLoginEmail">Email Address *</label>
+          <input type="email" id="clientLoginEmail" class="form-input" placeholder="e.g. adhi@gmail.com" required autocomplete="email">
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full btn-lg">
+          Log In & Explore Categories →
+        </button>
+      </form>
+
+      <!-- Tab 2: Admin Login Form (aari / aari2026) -->
+      <form id="adminLoginForm" class="login-panel">
+        <div class="demo-credentials-banner">
+          <div class="banner-badge">DEMO ADMIN CREDENTIALS</div>
+          <div class="credentials-text">
+            <span>Username: <strong>aari</strong></span>
+            <span class="divider">|</span>
+            <span>Password: <strong>aari2026</strong></span>
+          </div>
+          <button type="button" class="btn-autofill" id="btnAutofillAdmin">Click to Autofill</button>
+        </div>
+
+        <div id="adminLoginError" class="login-error-alert hidden">
+          Invalid admin credentials. Please use username `aari` and password `aari2026`.
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="adminLoginUser">Admin Username</label>
+          <input type="text" id="adminLoginUser" class="form-input" placeholder="Enter 'aari'" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="adminLoginPass">Admin Password</label>
+          <input type="password" id="adminLoginPass" class="form-input" placeholder="Enter 'aari2026'" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="btn btn-gold w-full btn-lg">
+          Sign In as Admin (Aari) →
+        </button>
+      </form>
+
     </div>
   </div>
 
-  <!-- ================================================================
-       APP SHELL (Hidden until login)
-       ================================================================ -->
-  <div id="appShell" class="app-shell">
 
-    <!-- HEADER -->
-    <header class="app-header">
-      <div class="header-left">
-        <div class="header-logo">AC</div>
-        <div class="header-brand">AARI <span>CONSTRUCTION</span></div>
+  <!-- B. CATEGORY INQUIRY & QUOTATION FORM MODAL -->
+  <div class="modal-backdrop" id="inquiryModal">
+    <div class="modal-dialog inquiry-modal-dialog">
+      <button class="modal-close" id="btnCloseInquiryModal" aria-label="Close modal">&times;</button>
+      
+      <div class="inquiry-header">
+        <div class="inquiry-cat-badge" id="inquiryCatBadge">Individual House</div>
+        <h2 class="modal-title" id="inquiryModalTitle">Custom Quotation & Registration Form</h2>
+        <p class="modal-subtitle" id="inquiryModalSubtitle">Configure your requirements, set your budget price range, and submit for registration.</p>
       </div>
 
-      <!-- Desktop Nav (Admin) -->
-      <nav id="adminNav" class="header-nav hidden">
-        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
-        <button class="nav-btn" data-view="projects">Projects</button>
-        <button class="nav-btn" data-view="units">Unit Matrix</button>
-        <button class="nav-btn" data-view="customizations">Requests</button>
-        <button class="nav-btn" data-view="addCustomer">+ Add Customer</button>
-      </nav>
+      <form id="categoryInquiryForm" class="inquiry-form-body">
+        
+        <input type="hidden" id="inquiryCategoryId" value="individual">
+        <input type="hidden" id="inquiryCategoryName" value="Individual House">
 
-      <!-- Desktop Nav (Customer) -->
-      <nav id="customerNav" class="header-nav hidden">
-        <button class="nav-btn active" data-view="myHome">My Home</button>
-        <button class="nav-btn" data-view="myPhotos">Site Photos</button>
-        <button class="nav-btn" data-view="myRequests">Request Changes</button>
-        <button class="nav-btn" data-view="myDelivery">Delivery</button>
-      </nav>
-
-      <div class="header-right">
-        <div class="header-user">
-          <div class="avatar-circle avatar-admin" id="headerAvatar">A</div>
-          <div class="user-meta">
-            <div class="user-meta-name" id="headerName">Admin</div>
-            <div class="user-meta-role" id="headerRole">Consultant</div>
+        <!-- Client Info Row -->
+        <div class="form-section-title">1. Your Contact Information</div>
+        <div class="form-row two-col">
+          <div class="form-group">
+            <label class="form-label" for="inqClientName">Full Name *</label>
+            <input type="text" id="inqClientName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inqClientPhone">Phone Number (Mandatory for verification) *</label>
+            <input type="tel" id="inqClientPhone" class="form-input" placeholder="+91 98765 43210" required>
           </div>
         </div>
-        <button class="btn-logout" id="btnLogout">Logout</button>
-        <button class="hamburger" id="btnHamburger" aria-label="Menu">☰</button>
-      </div>
-    </header>
 
-    <!-- Mobile Nav Drawer -->
-    <div id="mobileNav" class="mobile-nav"></div>
-
-    <!-- MAIN -->
-    <main class="app-main">
-
-      <!-- ============================================================
-           ADMIN: DASHBOARD
-           ============================================================ -->
-      <div id="viewDashboard" class="view">
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Dashboard</h1>
-            <p class="page-subtitle">Overall construction portfolio at a glance</p>
+        <div class="form-row two-col">
+          <div class="form-group">
+            <label class="form-label" for="inqClientEmail">Email Address *</label>
+            <input type="email" id="inqClientEmail" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inqClientCity">Preferred City / Plot Location *</label>
+            <select id="inqClientCity" class="form-select" required>
+              <option value="Chennai (ECR / OMR / Anna Nagar)">Chennai (ECR / OMR / Anna Nagar)</option>
+              <option value="Coimbatore">Coimbatore</option>
+              <option value="Madurai">Madurai</option>
+              <option value="Trichy">Trichy</option>
+              <option value="Ooty / Nilgiris">Ooty / Nilgiris</option>
+              <option value="Bangalore">Bangalore</option>
+              <option value="Other Location">Other City in Tamil Nadu</option>
+            </select>
           </div>
         </div>
-        <div class="stats-row" id="statsRow"></div>
 
-        <!-- Tier Explainer -->
-        <div class="card mb-md">
-          <div class="card-body">
-            <h3 class="font-bold mb-sm" style="color:var(--accent-light)">Aari's Tiered Delivery Model</h3>
-            <p class="text-sm text-secondary mb-md">Each unit is independently tracked. Bare-Bones deliveries are never blocked by Fully Finished custom work in neighboring flats.</p>
-            <div class="scope-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-              <div style="background:rgba(245,158,11,.06); border:1px solid rgba(245,158,11,.2); border-radius:var(--radius-sm); padding:14px;">
-                <div class="font-bold" style="color:#fcd34d;">Bare-Bones</div>
-                <p class="text-xs text-secondary mt-sm">Structure + Walls + Plastering only. Customer handles all finishing.</p>
-              </div>
-              <div style="background:rgba(6,182,212,.06); border:1px solid rgba(6,182,212,.2); border-radius:var(--radius-sm); padding:14px;">
-                <div class="font-bold" style="color:#67e8f9;">Semi-Finished</div>
-                <p class="text-xs text-secondary mt-sm">Structure + Electrical + Plumbing + Base Paint + Cladding. Customer does interiors.</p>
-              </div>
-              <div style="background:rgba(16,185,129,.06); border:1px solid rgba(16,185,129,.2); border-radius:var(--radius-sm); padding:14px;">
-                <div class="font-bold" style="color:#6ee7b7;">Fully Finished</div>
-                <p class="text-xs text-secondary mt-sm">Complete turnkey delivery including interiors, kitchen & automation.</p>
-              </div>
+        <!-- Project Specifications -->
+        <div class="form-section-title">2. Configuration & Customization Tier</div>
+        <div class="form-row two-col">
+          <div class="form-group">
+            <label class="form-label" for="inqBHKSelect">BHK / Floor Layout *</label>
+            <select id="inqBHKSelect" class="form-select" required>
+              <!-- Options loaded based on category -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="inqCustomTier">Construction Delivery Level *</label>
+            <select id="inqCustomTier" class="form-select" required>
+              <option value="bare_bones">Tier 1: Bare Bones Structure (RCC frame + Walls + Plaster only)</option>
+              <option value="semi_finished" selected>Tier 2: Semi-Finished (Plaster + Electrical conduits + Plumbing)</option>
+              <option value="full_finished">Tier 3: Luxury Turnkey Finished (Complete move-in ready)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Dynamic Budget Range Slider & Approx Calculation -->
+        <div class="form-section-title">3. Your Budget Price Range & Approx Quotation</div>
+        
+        <div class="budget-slider-box">
+          <div class="budget-display-row">
+            <span class="budget-label">Your Target Budget:</span>
+            <span class="budget-val-highlight" id="budgetFormattedVal">₹55.0 Lakhs</span>
+          </div>
+          
+          <input type="range" id="inqBudgetSlider" class="budget-slider" min="2000000" max="25000000" step="250000" value="5500000">
+
+          <div class="budget-range-indicators">
+            <span id="budgetSliderMin">₹20 Lakhs</span>
+            <span id="budgetSliderMid">₹1.35 Crores</span>
+            <span id="budgetSliderMax">₹2.50 Crores</span>
+          </div>
+
+          <!-- Realtime Approx Estimate Calculator Display -->
+          <div class="approx-calculation-card">
+            <div class="approx-item">
+              <span class="approx-label">Approx Built-up Area</span>
+              <span class="approx-value" id="approxSqftVal">~2,440 sq.ft</span>
+            </div>
+            <div class="approx-item">
+              <span class="approx-label">Estimated Rate</span>
+              <span class="approx-value" id="approxRateVal">₹2,250 / sq.ft</span>
+            </div>
+            <div class="approx-item">
+              <span class="approx-label">Estimated Handover</span>
+              <span class="approx-value" id="approxTimelineVal">8 – 12 Months</span>
             </div>
           </div>
         </div>
 
-        <div class="page-header">
-          <div>
-            <h2 class="page-title" style="font-size:1.1rem;">Active Projects</h2>
-          </div>
-        </div>
-        <div class="projects-grid" id="dashProjects"></div>
-      </div>
-
-      <!-- ============================================================
-           ADMIN: PROJECTS LIST
-           ============================================================ -->
-      <div id="viewProjects" class="view">
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">All Projects</h1>
-            <p class="page-subtitle">Select a project to inspect its units</p>
-          </div>
-        </div>
-        <div class="projects-grid" id="allProjects"></div>
-      </div>
-
-      <!-- ============================================================
-           ADMIN: UNIT MATRIX
-           ============================================================ -->
-      <div id="viewUnits" class="view">
-        <div class="page-header">
-          <div>
-            <h2 class="page-title" id="unitsTitle">Green Valley Apartments — Block A</h2>
-            <p class="page-subtitle">Click any unit to inspect details below</p>
-          </div>
-          <div class="flex gap-sm">
-            <button class="btn btn-ghost btn-sm" id="btnUploadPhoto">📷 Upload Photo</button>
-          </div>
+        <div class="form-group mt-md">
+          <label class="form-label" for="inqNotes">Special Customization Notes (Optional)</label>
+          <textarea id="inqNotes" class="form-textarea" rows="2" placeholder="e.g. Own plot available, double height ceiling in living room, wooden deck needed, solar inverter setup..."></textarea>
         </div>
 
-        <div class="flex gap-sm mb-md" style="flex-wrap:wrap;" id="filterBar"></div>
-
-        <div class="units-grid" id="unitsGrid"></div>
-        <div id="unitDetail"></div>
-      </div>
-
-      <!-- ============================================================
-           ADMIN: CUSTOMIZATION REQUESTS
-           ============================================================ -->
-      <div id="viewCustomizations" class="view">
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Customization Requests</h1>
-            <p class="page-subtitle">Review and act on customer change requests</p>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-body table-wrap" id="allRequestsTable"></div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           ADMIN: ADD CUSTOMER
-           ============================================================ -->
-      <div id="viewAddCustomer" class="view">
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Add New Customer</h1>
-            <p class="page-subtitle">Assign a customer to a project unit with their selected package</p>
-          </div>
+        <div class="form-actions mt-lg">
+          <button type="submit" class="btn btn-primary btn-lg w-full">
+            Submit Registration & Quotation Request
+          </button>
         </div>
 
-        <div class="card" style="max-width:560px;">
-          <div class="card-body">
-            <form id="addCustomerForm">
-              <div class="form-group">
-                <label class="form-label">Project</label>
-                <select class="form-select" id="acProject" required></select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Block</label>
-                <select class="form-select" id="acBlock" required></select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Flat / Unit Number</label>
-                <input class="form-input" id="acFlatNo" placeholder="e.g. A-301" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Floor</label>
-                <input class="form-input" id="acFloor" type="number" placeholder="e.g. 3" min="0" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Area (sq.ft)</label>
-                <input class="form-input" id="acSqft" type="number" placeholder="e.g. 1250" min="100" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Customer Full Name</label>
-                <input class="form-input" id="acName" placeholder="Enter customer name" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input class="form-input" id="acEmail" type="email" placeholder="customer@email.com" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Phone Number</label>
-                <input class="form-input" id="acPhone" placeholder="+91 98xxx xxxxx" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Package Type</label>
-                <select class="form-select" id="acPackage" required>
-                  <option value="Bare-Bones">Bare-Bones</option>
-                  <option value="Semi-Finished">Semi-Finished</option>
-                  <option value="Fully Finished">Fully Finished</option>
-                </select>
-              </div>
-              <button type="submit" class="btn btn-primary w-full">Add Customer & Assign Unit</button>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           CUSTOMER: MY HOME
-           ============================================================ -->
-      <div id="viewMyHome" class="view">
-        <div id="custHero"></div>
-        <div class="grid-2" id="custHomeGrid">
-          <div id="custTimeline"></div>
-          <div id="custSidebar"></div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           CUSTOMER: SITE PHOTOS
-           ============================================================ -->
-      <div id="viewMyPhotos" class="view">
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Site Photos</h1>
-            <p class="page-subtitle">Verified construction images from your unit</p>
-          </div>
-        </div>
-        <div class="photo-grid" id="custPhotos"></div>
-      </div>
-
-      <!-- ============================================================
-           CUSTOMER: REQUEST CHANGES
-           ============================================================ -->
-      <div id="viewMyRequests" class="view">
-        <div style="max-width:640px; margin:0 auto;">
-          <div class="page-header">
-            <div>
-              <h1 class="page-title">Request Customization</h1>
-              <p class="page-subtitle">Submit design changes without delaying core construction</p>
-            </div>
-          </div>
-          <div class="card mb-md">
-            <div class="card-body">
-              <form id="custRequestForm">
-                <div class="form-group">
-                  <label class="form-label">Category</label>
-                  <select class="form-select" id="crCategory">
-                    <option value="Electrical">Electrical & Power</option>
-                    <option value="Cladding">Tile Cladding</option>
-                    <option value="Painting">Wall Paint & Finish</option>
-                    <option value="Plumbing">Plumbing & Sanitary</option>
-                    <option value="Smart Home">Smart Automation</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Title</label>
-                  <input class="form-input" id="crTitle" placeholder="Brief description" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Details</label>
-                  <textarea class="form-textarea" id="crDesc" rows="3" placeholder="Specify exact location, measurements, materials..." required></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary w-full">Submit Request</button>
-              </form>
-            </div>
-          </div>
-          <h3 class="font-bold mb-sm">Your Requests</h3>
-          <div id="custExistingRequests"></div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           CUSTOMER: DELIVERY
-           ============================================================ -->
-      <div id="viewMyDelivery" class="view">
-        <div style="max-width:720px; margin:0 auto;">
-          <div class="page-header">
-            <div>
-              <h1 class="page-title">Delivery & Scope</h1>
-              <p class="page-subtitle">Your handover timeline and scope boundary</p>
-            </div>
-          </div>
-          <div id="custDeliveryContent"></div>
-        </div>
-      </div>
-
-    </main>
-  </div>
-
-  <!-- UPLOAD PHOTO MODAL -->
-  <div class="modal-overlay" id="uploadModal">
-    <div class="modal">
-      <button class="modal-close" id="closeUploadModal">&times;</button>
-      <h3 class="modal-title">Upload Site Photo</h3>
-      <form id="uploadPhotoForm">
-        <div class="form-group">
-          <label class="form-label">Unit</label>
-          <select class="form-select" id="upUnit"></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Stage</label>
-          <select class="form-select" id="upStage">
-            <option>Foundation</option><option>Structure</option><option>Plastering</option>
-            <option>Electrical</option><option>Painting</option><option>Cladding</option>
-            <option>Flooring</option><option>Interiors</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Photo (Select demo image)</label>
-          <select class="form-select" id="upImage">
-            <option value="https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?auto=format&fit=crop&w=800&q=80">Balcony Cladding Work</option>
-            <option value="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80">Interior Wall Painting</option>
-            <option value="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80">Electrical Panel Setup</option>
-            <option value="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80">Plastering Verification</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Caption</label>
-          <input class="form-input" id="upCaption" value="Site inspection verified" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Notes</label>
-          <textarea class="form-textarea" id="upNotes" rows="2">Quality check passed.</textarea>
-        </div>
-        <button type="submit" class="btn btn-primary w-full">Post to Customer Portal</button>
       </form>
     </div>
   </div>
 
-  <!-- TOAST -->
-  <div class="toast-container" id="toastContainer"></div>
 
+  <!-- C. SUCCESS & SITE OWNER SIMPLE INFO MODAL -->
+  <div class="modal-backdrop" id="confirmationModal">
+    <div class="modal-dialog confirmation-modal-dialog">
+      <button class="modal-close" id="btnCloseConfirmationModal" aria-label="Close modal">&times;</button>
+      
+      <div class="confirm-icon-wrap">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+
+      <h2 class="confirm-title">Request Submitted Successfully!</h2>
+      <p class="confirm-ref">Application Reference: <strong id="confirmRefId">REQ-2026-999</strong></p>
+
+      <div class="confirm-summary-box" id="confirmSummaryBox">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Owner Contact Card Box -->
+      <div class="owner-contact-modal-box">
+        <div class="box-badge">REGISTRATION APPROVAL INSTRUCTIONS</div>
+        <p class="contact-notice">
+          To approve your registration and verify manual payment/token advance, please contact our site owner directly or wait for our verification call:
+        </p>
+        
+        <div class="owner-simple-card">
+          <div class="owner-simple-avatar">AK</div>
+          <div class="owner-simple-details">
+            <h4 class="owner-simple-name">Mr. Aarikrishnan</h4>
+            <span class="owner-simple-title">Site Owner & Managing Director</span>
+            <div class="owner-simple-phone">
+              <span>Phone:</span>
+              <a href="tel:+919876543210" class="phone-link">+91 98765 43210</a>
+            </div>
+            <div class="owner-simple-email">
+              <span>Email:</span>
+              <a href="mailto:contact@aariconstruction.in">contact@aariconstruction.in</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="owner-modal-action-buttons">
+          <a href="tel:+919876543210" class="btn btn-primary w-full">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Call Mr. Aarikrishnan Now
+          </a>
+          <a href="https://wa.me/919876543210?text=Hello%20Aari%20Construction,%20I%20have%20submitted%20request%20for%20registration." target="_blank" class="btn btn-secondary w-full">
+            Chat on WhatsApp
+          </a>
+        </div>
+      </div>
+
+      <div class="confirm-footer-actions">
+        <button class="btn btn-outline w-full" id="btnViewMyRequestsFromModal">
+          View My Application Status
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- D. ADMIN APPROVAL MODAL (Assign Flat No & Manual Payment Verification) -->
+  <div class="modal-backdrop" id="adminApprovalModal">
+    <div class="modal-dialog">
+      <button class="modal-close" id="btnCloseApprovalModal" aria-label="Close modal">&times;</button>
+      
+      <div class="modal-header">
+        <h2 class="modal-title">Approve Client Request & Assign Flat</h2>
+        <p class="modal-subtitle">Confirm manual telephone verification and assign unit allotment</p>
+      </div>
+
+      <form id="adminApprovalForm" class="styled-form">
+        <input type="hidden" id="approveReqId">
+        
+        <div class="approval-client-preview" id="approvalClientPreview">
+          <!-- Injected via JavaScript -->
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="assignFlatNumber">Assign Flat / Unit / Plot Number *</label>
+          <input type="text" id="assignFlatNumber" class="form-input" placeholder="e.g. Tower A - Flat 502 (or Plot 14)" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="approvalAdminNotes">Verification & Payment Remarks</label>
+          <textarea id="approvalAdminNotes" class="form-textarea" rows="2" placeholder="Called client. Token advance verified via bank transfer / cheque."></textarea>
+        </div>
+
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="checkPaymentVerified" required checked>
+            <span>I confirm that client details and payment/token have been manually verified via call.</span>
+          </label>
+        </div>
+
+        <div class="form-actions mt-md">
+          <button type="submit" class="btn btn-success btn-lg">
+            Confirm & Approve Registration
+          </button>
+          <button type="button" class="btn btn-outline" id="btnCancelApprovalModal">Back</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- SCRIPT INCLUSION -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
