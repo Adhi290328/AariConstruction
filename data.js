@@ -97,6 +97,79 @@ export const PREVIOUS_PROJECTS = [
 
 export const HISTORICAL_PROJECTS = PREVIOUS_PROJECTS;
 
+/**
+ * PROJECTS_MAP — Project → Block → Flat navigator data.
+ * Used by admin to drill-down to individual units and by the customer
+ * home-tracker view to see which flat they own.
+ */
+export const PROJECTS_MAP = [
+  {
+    id: 'skyline',
+    name: 'Skyline Towers Premium Suites',
+    location: 'Anna Nagar West, Chennai',
+    category: 'Apartment',
+    image: 'https://images.unsplash.com/photo-1574362848149-11496d93a7c7?auto=format&fit=crop&w=800&q=80',
+    blocks: [
+      {
+        id: 'tower-a',
+        name: 'Tower A',
+        flats: ['Flat 101','Flat 102','Flat 201','Flat 202','Flat 301','Flat 302','Flat 401','Flat 402','Flat 501']
+      },
+      {
+        id: 'tower-b',
+        name: 'Tower B',
+        flats: ['Flat 101','Flat 102','Flat 201','Flat 202','Flat 301','Flat 302','Flat 401','Flat 402','Flat 501']
+      }
+    ]
+  },
+  {
+    id: 'royal-palm',
+    name: 'Royal Palm Enclave Villas',
+    location: 'Race Course Road, Coimbatore',
+    category: 'Villa',
+    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80',
+    blocks: [
+      {
+        id: 'phase-1',
+        name: 'Phase 1',
+        flats: ['Villa Rosa - Plot 01','Villa Rosa - Plot 02','Villa Rosa - Plot 03','Villa Rosa - Plot 04','Villa Rosa - Plot 05','Villa Rosa - Plot 06','Villa Rosa - Plot 07','Villa Rosa - Plot 08']
+      },
+      {
+        id: 'phase-2',
+        name: 'Phase 2',
+        flats: ['Villa Rosa - Plot 09','Villa Rosa - Plot 10','Villa Rosa - Plot 11','Villa Rosa - Plot 12']
+      }
+    ]
+  },
+  {
+    id: 'sunstone',
+    name: 'Sunstone Heritage Enclave',
+    location: 'KK Nagar, Madurai',
+    category: 'Individual House',
+    image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=800&q=80',
+    blocks: [
+      {
+        id: 'enclave',
+        name: 'Enclave',
+        flats: ['Plot #10','Plot #11','Plot #12','Plot #13','Plot #14','Plot #15','Plot #16']
+      }
+    ]
+  }
+];
+
+/**
+ * CONSTRUCTION_MILESTONES — Ordered construction stages used to render
+ * the interactive timeline for both admin updates and the customer view.
+ */
+export const CONSTRUCTION_MILESTONES = [
+  { id: 'foundation',   label: 'Foundation',         icon: '⛏️',  desc: 'Soil testing, excavation & RCC foundation pour' },
+  { id: 'structure',    label: 'Structure',           icon: '🏗️', desc: 'Columns, beams, slabs & structural frame completion' },
+  { id: 'masonry',      label: 'Masonry & Plastering',icon: '🧱',  desc: 'Brick-work, internal & external plastering' },
+  { id: 'electrical',   label: 'Electrical & Plumbing',icon: '⚡', desc: 'Concealed conduits, wiring, plumbing fittings & fixtures' },
+  { id: 'painting',     label: 'Painting & Tiling',   icon: '🎨',  desc: 'Floor tiles, wall primer, texture & emulsion paint' },
+  { id: 'handover',     label: 'Handover Ready',       icon: '🔑',  desc: 'Final inspection, snag-list clearance & key handover' }
+];
+
 export const CATEGORIES = [
   {
     id: "individual",
@@ -197,12 +270,17 @@ export const INITIAL_REQUESTS = [
     approxSqft: 3400,
     notes: "Requires east-facing pooja room and EV charging port in portico.",
     createdAt: "2026-10-06 10:30 AM",
-    status: "Pending", // Pending | Approved | Rejected
+    status: "Pending",
     assignedFlat: "",
-    constructionStage: "Pending", // Pending | Needs to Start | Processing | Finished | Rejected
+    projectId: "",
+    blockId: "",
+    constructionStage: "Pending",
     progressPercent: 0,
     progressStageNotes: "Awaiting phone verification call for token advance payment.",
-    adminNotes: "Called client. Advance token payment verification pending."
+    adminNotes: "Called client. Advance token payment verification pending.",
+    estimatedHandover: "",
+    milestones: {},
+    progressPhotos: []
   },
   {
     id: "REQ-2026-094",
@@ -220,10 +298,19 @@ export const INITIAL_REQUESTS = [
     createdAt: "2026-10-04 03:15 PM",
     status: "Approved",
     assignedFlat: "Tower B - Flat 402",
+    projectId: "skyline",
+    blockId: "tower-b",
     constructionStage: "Processing",
     progressPercent: 65,
     progressStageNotes: "Brick masonry and concealed conduits completed. Plastering & tile primer in progress.",
-    adminNotes: "Advance token verified. Structural modifications approved by chief engineer."
+    adminNotes: "Advance token verified. Structural modifications approved by chief engineer.",
+    estimatedHandover: "March 2027",
+    milestones: { foundation: true, structure: true, masonry: true, electrical: false, painting: false, handover: false },
+    progressPhotos: [
+      { url: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=600&q=70', caption: 'Foundation pour completed', date: '2026-08-12' },
+      { url: 'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&w=600&q=70', caption: 'RCC columns & slab — 3rd floor', date: '2026-09-05' },
+      { url: 'https://images.unsplash.com/photo-1581094480572-6d6c4d5c5f4e?auto=format&fit=crop&w=600&q=70', caption: 'Plastering in progress — Flat 402', date: '2026-10-01' }
+    ]
   },
   {
     id: "REQ-2026-088",
@@ -241,10 +328,17 @@ export const INITIAL_REQUESTS = [
     createdAt: "2026-10-02 11:00 AM",
     status: "Approved",
     assignedFlat: "Plot #14 - Sunstone Enclave",
+    projectId: "sunstone",
+    blockId: "enclave",
     constructionStage: "Needs to Start",
     progressPercent: 12,
     progressStageNotes: "Site clearance completed. Soil testing done. Foundation excavation starts Monday.",
-    adminNotes: "Advance token verified. Soil test report submitted to municipal corporation."
+    adminNotes: "Advance token verified. Soil test report submitted to municipal corporation.",
+    estimatedHandover: "August 2027",
+    milestones: { foundation: false, structure: false, masonry: false, electrical: false, painting: false, handover: false },
+    progressPhotos: [
+      { url: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=600&q=70', caption: 'Site clearance & boundary marking', date: '2026-10-03' }
+    ]
   },
   {
     id: "REQ-2026-079",
@@ -262,10 +356,19 @@ export const INITIAL_REQUESTS = [
     createdAt: "2026-09-28 04:45 PM",
     status: "Approved",
     assignedFlat: "Villa Rosa - Plot 08",
+    projectId: "royal-palm",
+    blockId: "phase-1",
     constructionStage: "Finished",
     progressPercent: 100,
     progressStageNotes: "Project 100% completed. Handover certified and keys presented to customer.",
-    adminNotes: "Full payment received. Handover inspection sign-off completed."
+    adminNotes: "Full payment received. Handover inspection sign-off completed.",
+    estimatedHandover: "September 2026 ✅ Delivered",
+    milestones: { foundation: true, structure: true, masonry: true, electrical: true, painting: true, handover: true },
+    progressPhotos: [
+      { url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=70', caption: 'Villa exterior — final coat', date: '2026-08-20' },
+      { url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=70', caption: 'Interior living room — move-in ready', date: '2026-09-10' },
+      { url: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=600&q=70', caption: 'Key handover ceremony', date: '2026-09-22' }
+    ]
   },
   {
     id: "REQ-2026-065",
@@ -283,10 +386,15 @@ export const INITIAL_REQUESTS = [
     createdAt: "2026-09-25 09:15 AM",
     status: "Rejected",
     assignedFlat: "",
+    projectId: "",
+    blockId: "",
     constructionStage: "Rejected",
     progressPercent: 0,
     progressStageNotes: "Inquiry cancelled upon manual verification.",
-    adminNotes: "Customer cancelled inquiry due to relocation outside Tamil Nadu."
+    adminNotes: "Customer cancelled inquiry due to relocation outside Tamil Nadu.",
+    estimatedHandover: "",
+    milestones: {},
+    progressPhotos: []
   }
 ];
 

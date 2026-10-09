@@ -543,6 +543,10 @@
             <span>➕</span>
             <span class="tab-label">Add Customer (Flat No)</span>
           </button>
+          <button class="stage-tab-pill" data-stage-tab="projectNavTab">
+            <span>🏢</span>
+            <span class="tab-label">Project Navigator</span>
+          </button>
         </div>
       </div>
 
@@ -661,6 +665,16 @@
             </div>
           </form>
         </div>
+      </div>
+
+      <!-- Tab 4: Project → Block → Flat Navigator -->
+      <div class="admin-tab-pane" id="paneProjectNav">
+        <div class="section-header">
+          <div class="eyebrow">PROJECT NAVIGATOR</div>
+          <h2 class="section-title">Project → Block → Flat Tracker</h2>
+          <p class="section-subtitle">Drill into any active project, select a block, and view every flat's current construction status at a glance.</p>
+        </div>
+        <div id="projectNavContainer"><!-- populated by JS --></div>
       </div>
 
     </section>
@@ -1050,6 +1064,60 @@
 
     </div>
   </div>
+
+
+  <!-- G. ADMIN MILESTONE TRACKER MODAL -->
+  <div class="modal-backdrop" id="adminMilestoneModal">
+    <div class="modal-dialog" style="max-width:580px;">
+      <button class="modal-close" id="btnCloseMilestoneModal" aria-label="Close modal">&times;</button>
+
+      <div class="modal-header">
+        <h2 class="modal-title">Milestone Tracker &amp; Progress Photos</h2>
+        <p class="modal-subtitle">Tick completed milestones, update estimated handover, and add a photo update</p>
+      </div>
+
+      <form id="adminMilestoneForm" class="styled-form">
+        <input type="hidden" id="milestoneReqId">
+        <div class="approval-client-preview" id="milestoneClientPreview"></div>
+
+        <!-- Milestone Checkboxes (rendered by JS) -->
+        <div class="form-section-title">Construction Milestones</div>
+        <div id="milestoneCheckboxList" class="milestone-checkbox-grid"></div>
+
+        <div class="form-row two-col" style="margin-top:1rem;">
+          <div class="form-group">
+            <label class="form-label" for="milestoneHandover">Estimated Handover Date</label>
+            <input type="text" id="milestoneHandover" class="form-input" placeholder="e.g. March 2027">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="milestonePhotoCaption">Photo Caption</label>
+            <input type="text" id="milestonePhotoCaption" class="form-input" placeholder="e.g. 2nd floor slab poured">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="milestonePhotoUrl">Progress Photo URL (paste image link)</label>
+          <input type="url" id="milestonePhotoUrl" class="form-input" placeholder="https://images.unsplash.com/...">
+        </div>
+
+        <div class="form-actions mt-md">
+          <button type="submit" class="btn btn-primary btn-lg">Save Milestones &amp; Photo</button>
+          <button type="button" class="btn btn-outline" id="btnCancelMilestoneModal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- H. CUSTOMER HOME TRACKER MODAL -->
+  <div class="modal-backdrop" id="customerTrackerModal">
+    <div class="modal-dialog" style="max-width:620px; max-height:90vh; overflow-y:auto;">
+      <button class="modal-close" id="btnCloseTrackerModal" aria-label="Close modal">&times;</button>
+      <div id="customerTrackerContent">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
 
   <!-- SCRIPT INCLUSION -->
   <script type="module" src="app.js"></script>

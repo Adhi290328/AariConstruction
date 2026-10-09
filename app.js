@@ -12,6 +12,8 @@ import {
   HISTORICAL_PROJECTS,
   CATEGORIES,
   CUSTOMIZATION_TIERS,
+  PROJECTS_MAP,
+  CONSTRUCTION_MILESTONES,
   getRequests,
   saveRequests
 } from './data.js';
@@ -37,8 +39,10 @@ class AariApp {
     
     // Set initial baseline history state
     if (!history.state) {
-      const initialView = (this.currentUser && this.currentUser.role === 'admin') ? 'admin' : 'landing';
-      history.replaceState({ view: initialView }, '', window.location.hash || '#home');
+      const initialView = (this.currentUser && this.currentUser.role === 'admin') 
+        ? 'admin' 
+        : (this.currentUser ? 'client' : 'landing');
+      history.replaceState({ view: initialView, tab: 'categoriesTab' }, '', window.location.hash || (this.currentUser ? (this.currentUser.role === 'admin' ? '#admin' : '#client') : '#home'));
     }
 
     // Resume session or show landing page
@@ -47,6 +51,7 @@ class AariApp {
         this.switchView('admin', false);
       } else {
         this.switchView('client', false);
+        this.switchClientTab('categoriesTab', false);
       }
     } else {
       this.switchView('landing', false);
@@ -228,6 +233,26 @@ class AariApp {
     this.tabMyRequestsContent = document.getElementById('tabMyRequestsContent');
     this.tabPortfolioContent = document.getElementById('tabPortfolioContent');
     this.btnScrollToCategories = document.getElementById('btnScrollToCategories');
+
+    // Admin Milestone Modal Elements
+    this.adminMilestoneModal = document.getElementById('adminMilestoneModal');
+    this.btnCloseMilestoneModal = document.getElementById('btnCloseMilestoneModal');
+    this.btnCancelMilestoneModal = document.getElementById('btnCancelMilestoneModal');
+    this.adminMilestoneForm = document.getElementById('adminMilestoneForm');
+    this.milestoneReqId = document.getElementById('milestoneReqId');
+    this.milestoneClientPreview = document.getElementById('milestoneClientPreview');
+    this.milestoneCheckboxList = document.getElementById('milestoneCheckboxList');
+    this.milestoneHandover = document.getElementById('milestoneHandover');
+    this.milestonePhotoCaption = document.getElementById('milestonePhotoCaption');
+    this.milestonePhotoUrl = document.getElementById('milestonePhotoUrl');
+
+    // Customer Home Tracker Modal Elements
+    this.customerTrackerModal = document.getElementById('customerTrackerModal');
+    this.btnCloseTrackerModal = document.getElementById('btnCloseTrackerModal');
+    this.customerTrackerContent = document.getElementById('customerTrackerContent');
+
+    // Project Navigator Container
+    this.projectNavContainer = document.getElementById('projectNavContainer');
   }
 
   /* ---------------------------------------------------------------------
@@ -299,8 +324,19 @@ class AariApp {
         name: name,
         email: email
       });
-      this.closeLoginModal();
-      this.switchView('client');
+      // Close modal directly without triggering history.back()
+      this.closeModal(this.loginModal, false);
+      // Immediately redirect to Client Portal and select house categories tab
+      this.switchView('client', true);
+      this.switchClientTab('categoriesTab', false);
+
+      // Auto-scroll so customer immediately sees the types of houses to choose from
+      setTimeout(() => {
+        const catTarget = document.getElementById('tabCategoriesContent') || document.getElementById('clientCategoriesGrid');
+        if (catTarget) {
+          catTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
     });
 
     // Form: Admin Login
@@ -316,7 +352,7 @@ class AariApp {
           name: 'Aarikrishnan (Admin)',
           email: CONFIG.owner.email
         });
-        this.closeLoginModal();
+        this.closeModal(this.loginModal, false);
         // Redirect directly to Admin Portal (never show landing)
         this.switchView('admin', true);
       } else {
@@ -488,6 +524,32 @@ class AariApp {
         this.switchClientTab('categoriesTab');
       });
     }
+
+    // Admin Milestone Modal Events
+    if (this.btnCloseMilestoneModal) {
+      this.btnCloseMilestoneModal.addEventListener('click', () => this.closeMilestoneModal());
+    }
+    if (this.btnCancelMilestoneModal) {
+      this.btnCancelMilestoneModal.addEventListener('click', () => this.closeMilestoneModal());
+    }
+    if (this.adminMilestoneModal) {
+      this.adminMilestoneModal.addEventListener('click', (e) => {
+        if (e.target === this.adminMilestoneModal) this.closeMilestoneModal();
+      });
+    }
+    if (this.adminMilestoneForm) {
+      this.adminMilestoneForm.addEventListener('submit', (e) => this.handleMilestoneSubmit(e));
+    }
+
+    // Customer Tracker Modal Events
+    if (this.btnCloseTrackerModal) {
+      this.btnCloseTrackerModal.addEventListener('click', () => this.closeCustomerTrackerModal());
+    }
+    if (this.customerTrackerModal) {
+      this.customerTrackerModal.addEventListener('click', (e) => {
+        if (e.target === this.customerTrackerModal) this.closeCustomerTrackerModal();
+      });
+    }
   }
 
   /* ---------------------------------------------------------------------
@@ -517,6 +579,11 @@ class AariApp {
 
     // 4. For Client / Guests:
     if (e.state && e.state.view) {
+      if (this.currentUser && this.currentUser.role === 'client' && e.state.view === 'landing') {
+        // Prevent accidental kicks to landing page for logged-in clients
+        this.switchView('client', false);
+        return;
+      }
       this.switchView(e.state.view, false);
       if (e.state.view === 'client' && e.state.tab) {
         this.switchClientTab(e.state.tab, false);
@@ -543,11 +610,11 @@ class AariApp {
     history.pushState({ modal: modalEl.id }, '', '#' + hashId);
   }
 
-  closeModal(modalEl) {
+  closeModal(modalEl, popHistory = true) {
     if (!modalEl) return;
     if (modalEl.classList.contains('open')) {
       modalEl.classList.remove('open');
-      if (history.state && history.state.modal === modalEl.id) {
+      if (popHistory && history.state && history.state.modal === modalEl.id) {
         history.back();
       }
     }
@@ -582,6 +649,7 @@ class AariApp {
       this.viewClientPortal.classList.add('active');
       this.clientNav.classList.remove('hidden');
       this.renderClientPortal();
+      this.switchClientTab(this.currentClientTab || 'categoriesTab', false);
       if (pushHistory) {
         history.pushState({ view: 'client', tab: this.currentClientTab || 'categoriesTab' }, '', '#client');
       }
@@ -1146,6 +1214,11 @@ class AariApp {
             ` : ''}
           </div>
           <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            ${req.status === 'Approved' ? `
+              <button class="btn btn-gold btn-view-tracker" data-req-id="${req.id}" style="font-size:0.82rem;">
+                🔍 Live Tracker & Photos
+              </button>
+            ` : ''}
             <a href="tel:+919876543210" class="btn btn-outline" style="font-size:0.82rem;">
               📞 Call Owner
             </a>
@@ -1156,6 +1229,14 @@ class AariApp {
         </div>
       `;
     }).join('');
+
+    // Wire up tracker view button
+    document.querySelectorAll('.btn-view-tracker').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reqId = btn.getAttribute('data-req-id');
+        this.openCustomerTrackerModal(reqId);
+      });
+    });
   }
 
   /* ---------------------------------------------------------------------
@@ -1234,6 +1315,10 @@ class AariApp {
 
     if (tabName === 'addCustomerTab') {
       document.getElementById('paneAddCustomer').classList.add('active');
+    } else if (tabName === 'projectNavTab') {
+      const pane = document.getElementById('paneProjectNav');
+      if (pane) pane.classList.add('active');
+      this.renderProjectNav();
     } else {
       document.getElementById('paneRequests').classList.add('active');
       
@@ -1411,6 +1496,9 @@ class AariApp {
               <button class="btn btn-primary btn-update-stage-action" data-req-id="${req.id}" style="font-size:0.82rem;">
                 ⚙️ Update Stage & %
               </button>
+              <button class="btn btn-secondary btn-milestone-action" data-req-id="${req.id}" style="font-size:0.82rem;">
+                📸 Milestones & Photos
+              </button>
               <button class="btn btn-outline btn-edit-allotment" data-req-id="${req.id}" style="font-size:0.82rem;">
                 ✏️ Edit Flat No
               </button>
@@ -1445,6 +1533,13 @@ class AariApp {
       btn.addEventListener('click', () => {
         const reqId = btn.getAttribute('data-req-id');
         this.openProgressModal(reqId);
+      });
+    });
+
+    document.querySelectorAll('.btn-milestone-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reqId = btn.getAttribute('data-req-id');
+        this.openMilestoneModal(reqId);
       });
     });
 
@@ -1615,6 +1710,229 @@ class AariApp {
         this.openLoginModal('client');
       });
     });
+  }
+
+  /* ---------------------------------------------------------------------
+     ADMIN MILESTONE TRACKER & PROGRESS PHOTOS
+     --------------------------------------------------------------------- */
+  openMilestoneModal(reqId) {
+    const req = this.requests.find(r => r.id === reqId);
+    if (!req) return;
+
+    this.milestoneReqId.value = req.id;
+    this.milestoneClientPreview.innerHTML = `
+      <div style="font-weight:700; color:#fff; font-size:1.05rem; margin-bottom:0.25rem;">
+        ${this.escapeHtml(req.clientName)} — <span style="color:var(--gold-400);">${this.escapeHtml(req.assignedFlat || 'Unit Allotted')}</span>
+      </div>
+      <div style="font-size:0.84rem; color:var(--text-muted);">
+        Request ID: <strong>${req.id}</strong> • Project: <strong>${req.category}</strong> (${req.bhk})
+      </div>
+    `;
+
+    const msObj = req.milestones || {};
+    this.milestoneCheckboxList.innerHTML = CONSTRUCTION_MILESTONES.map(ms => {
+      const isChecked = !!msObj[ms.id];
+      return `
+        <label class="milestone-checkbox-item">
+          <input type="checkbox" name="milestone" value="${ms.id}" ${isChecked ? 'checked' : ''}>
+          <div class="ms-text">
+            <span class="ms-title">${ms.icon} ${ms.label}</span>
+            <span class="ms-desc">${ms.desc}</span>
+          </div>
+        </label>
+      `;
+    }).join('');
+
+    this.milestoneHandover.value = req.estimatedHandover || '';
+    this.milestonePhotoCaption.value = '';
+    this.milestonePhotoUrl.value = '';
+
+    this.openModal(this.adminMilestoneModal, 'milestones');
+  }
+
+  closeMilestoneModal() {
+    this.closeModal(this.adminMilestoneModal);
+  }
+
+  handleMilestoneSubmit(e) {
+    e.preventDefault();
+    const reqId = this.milestoneReqId.value;
+    const req = this.requests.find(r => r.id === reqId);
+    if (!req) return;
+
+    const checkedBoxes = this.milestoneCheckboxList.querySelectorAll('input[type="checkbox"]:checked');
+    const newMilestones = {};
+    checkedBoxes.forEach(cb => {
+      newMilestones[cb.value] = true;
+    });
+
+    req.milestones = newMilestones;
+    req.estimatedHandover = this.milestoneHandover.value.trim();
+
+    const photoUrl = this.milestonePhotoUrl.value.trim();
+    const photoCaption = this.milestonePhotoCaption.value.trim() || 'Site Progress Update';
+    if (photoUrl) {
+      if (!Array.isArray(req.progressPhotos)) {
+        req.progressPhotos = [];
+      }
+      req.progressPhotos.unshift({
+        url: photoUrl,
+        caption: photoCaption,
+        date: new Date().toISOString().split('T')[0]
+      });
+    }
+
+    saveRequests(this.requests);
+    this.closeMilestoneModal();
+    this.renderAdminDashboard();
+  }
+
+  /* ---------------------------------------------------------------------
+     CUSTOMER LIVE HOME TRACKER & PROGRESS TIMELINE
+     --------------------------------------------------------------------- */
+  openCustomerTrackerModal(reqId) {
+    const req = this.requests.find(r => r.id === reqId);
+    if (!req) return;
+
+    const pct = req.progressPercent || 0;
+    const stage = req.constructionStage || 'Processing';
+    const msObj = req.milestones || {};
+    const photos = req.progressPhotos || [];
+
+    this.customerTrackerContent.innerHTML = `
+      <div class="modal-header" style="text-align:left; border-bottom:1px solid var(--border-subtle); padding-bottom:1rem; margin-bottom:1.25rem;">
+        <span class="req-id-pill" style="margin-bottom:0.4rem; display:inline-block;">${req.id}</span>
+        <h2 class="modal-title" style="font-size:1.4rem;">${this.escapeHtml(req.assignedFlat || 'Your Allotted Unit')}</h2>
+        <p class="modal-subtitle" style="font-size:0.9rem;">
+          ${this.escapeHtml(req.category)} — ${this.escapeHtml(req.bhk)} • Location: <strong>${this.escapeHtml(req.city)}</strong>
+        </p>
+      </div>
+
+      <!-- Current Progress Summary -->
+      <div style="background:var(--bg-card); border:1px solid var(--border-card); border-radius:var(--radius-md); padding:1rem 1.25rem; margin-bottom:1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span style="font-size:0.85rem; font-weight:700; color:var(--gold-400); text-transform:uppercase;">Construction Status: ${stage}</span>
+          <span style="font-size:1.1rem; font-weight:800; color:#fff;">${pct}%</span>
+        </div>
+        <div class="progress-track" style="margin-bottom:0.6rem;">
+          <div class="progress-fill ${stage === 'Finished' ? 'stage-finished' : 'stage-processing'}" style="width:${pct}%;"></div>
+        </div>
+        ${req.estimatedHandover ? `
+          <div style="font-size:0.82rem; color:var(--emerald-500); font-weight:700;">
+            📅 Estimated Delivery / Handover: <span style="color:#fff;">${this.escapeHtml(req.estimatedHandover)}</span>
+          </div>
+        ` : ''}
+        ${req.progressStageNotes ? `
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.4rem;">
+            📍 <strong>Site Engineer Note:</strong> ${this.escapeHtml(req.progressStageNotes)}
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- Milestone Timeline -->
+      <h3 style="font-size:1.05rem; color:#fff; margin-bottom:0.5rem;">Construction Milestone Stages</h3>
+      <div class="tracker-timeline">
+        ${CONSTRUCTION_MILESTONES.map(ms => {
+          const isDone = !!msObj[ms.id];
+          return `
+            <div class="timeline-step ${isDone ? 'completed' : ''}">
+              <div class="step-title">
+                ${ms.icon} ${ms.label} ${isDone ? '✅' : '⏳'}
+              </div>
+              <div class="step-desc">${ms.desc}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- Photo Gallery -->
+      ${photos.length > 0 ? `
+        <h3 style="font-size:1.05rem; color:#fff; margin-top:1.5rem; margin-bottom:0.5rem;">Live Site Progress Photos</h3>
+        <div class="tracker-photo-gallery">
+          ${photos.map(p => `
+            <div class="tracker-photo-item">
+              <img src="${p.url}" alt="${this.escapeHtml(p.caption)}" loading="lazy">
+              <div class="caption">
+                <strong>${this.escapeHtml(p.caption)}</strong>
+                ${p.date ? `<div style="font-size:0.7rem; color:var(--text-dim);">${p.date}</div>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <div style="margin-top:1.75rem; text-align:right;">
+        <button type="button" class="btn btn-outline" id="btnTrackerModalDismiss">Close Tracker</button>
+      </div>
+    `;
+
+    const dismissBtn = document.getElementById('btnTrackerModalDismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => this.closeCustomerTrackerModal());
+    }
+
+    this.openModal(this.customerTrackerModal, 'tracker');
+  }
+
+  closeCustomerTrackerModal() {
+    this.closeModal(this.customerTrackerModal);
+  }
+
+  /* ---------------------------------------------------------------------
+     ADMIN PROJECT -> BLOCK -> FLAT NAVIGATOR
+     --------------------------------------------------------------------- */
+  renderProjectNav() {
+    if (!this.projectNavContainer) return;
+
+    this.projectNavContainer.innerHTML = PROJECTS_MAP.map(project => {
+      return `
+        <div class="project-nav-card">
+          <div class="project-nav-header">
+            <div>
+              <span class="category-badge" style="margin-bottom:0.35rem; display:inline-block;">${project.category}</span>
+              <h3 style="color:#fff; font-size:1.25rem; margin:0;">${this.escapeHtml(project.name)}</h3>
+              <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.25rem;">📍 ${this.escapeHtml(project.location)}</p>
+            </div>
+          </div>
+
+          ${project.blocks.map(block => {
+            return `
+              <div class="project-block-section">
+                <div class="project-block-title">🧱 ${this.escapeHtml(block.name)} Units</div>
+                <div class="flats-grid">
+                  ${block.flats.map(flatName => {
+                    const matchedReq = this.requests.find(r => 
+                      r.status === 'Approved' && 
+                      r.assignedFlat && 
+                      (r.assignedFlat.toLowerCase().includes(flatName.toLowerCase()) || flatName.toLowerCase().includes(r.assignedFlat.toLowerCase()))
+                    );
+
+                    const isOccupied = !!matchedReq;
+                    const stage = matchedReq ? (matchedReq.constructionStage || 'Needs to Start') : 'Available';
+                    const pct = matchedReq ? (matchedReq.progressPercent || 0) : 0;
+                    const stageColor = stage === 'Finished' ? 'var(--emerald-500)' : (stage === 'Processing' ? 'var(--gold-400)' : (stage === 'Available' ? 'var(--text-dim)' : '#60a5fa'));
+
+                    return `
+                      <div class="flat-pill-card ${isOccupied ? 'occupied' : ''}">
+                        <div class="flat-no">${this.escapeHtml(flatName)}</div>
+                        <div class="flat-status" style="color:${stageColor};">
+                          ${isOccupied ? `● ${stage} (${pct}%)` : '○ Unassigned / Ready'}
+                        </div>
+                        ${matchedReq ? `
+                          <div class="flat-client">Client: ${this.escapeHtml(matchedReq.clientName)}</div>
+                        ` : `
+                          <div class="flat-client" style="color:var(--text-dim);">No allotment</div>
+                        `}
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }).join('');
   }
 
   /* ---------------------------------------------------------------------

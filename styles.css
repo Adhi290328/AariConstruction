@@ -2408,3 +2408,207 @@ img {
   }
 }
 
+/* =====================================================================
+   MILESTONE CHECKLIST, PROJECT NAVIGATOR & CUSTOMER TRACKER STYLES
+   ===================================================================== */
+.milestone-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.milestone-checkbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.milestone-checkbox-item:hover {
+  border-color: var(--gold-400);
+}
+
+.milestone-checkbox-item input[type="checkbox"] {
+  margin-top: 0.2rem;
+  accent-color: var(--gold-500);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.milestone-checkbox-item .ms-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.milestone-checkbox-item .ms-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #fff;
+}
+
+.milestone-checkbox-item .ms-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.project-nav-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.project-nav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.85rem;
+}
+
+.project-block-section {
+  margin-top: 1.25rem;
+}
+
+.project-block-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gold-400);
+  margin-bottom: 0.75rem;
+}
+
+.flats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.flat-pill-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: var(--transition-fast);
+}
+
+.flat-pill-card.occupied {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.flat-pill-card .flat-no {
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: #fff;
+}
+
+.flat-pill-card .flat-status {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.flat-pill-card .flat-client {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tracker-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: relative;
+  padding-left: 2rem;
+  margin: 1.5rem 0;
+}
+
+.tracker-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.65rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  background: var(--border-card);
+}
+
+.timeline-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timeline-step::before {
+  content: '';
+  position: absolute;
+  left: -2rem;
+  top: 0.2rem;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 2px solid var(--text-dim);
+}
+
+.timeline-step.completed::before {
+  background: var(--emerald-500);
+  border-color: var(--emerald-500);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.timeline-step .step-title {
+  font-weight: 700;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.timeline-step .step-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.tracker-photo-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.tracker-photo-item {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-card);
+  background: var(--bg-surface);
+}
+
+.tracker-photo-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.tracker-photo-item .caption {
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
